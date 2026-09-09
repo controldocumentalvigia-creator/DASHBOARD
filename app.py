@@ -11,6 +11,7 @@ import calendar
 
 import numpy as np
 import pandas as pd
+from pandas.io.formats.style import Styler
 import openpyxl
 import plotly.graph_objects as go
 import requests
@@ -278,6 +279,234 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+
+# =========================================================
+# SISTEMA VISUAL GLOBAL DE TABLAS · DARK NAVY EJECUTIVO
+# =========================================================
+st.markdown(
+    """
+    <style>
+        .exec-table-wrap {
+            width: 100%;
+            overflow: auto;
+            background: #101C2C;
+            border: 1px solid #29415E;
+            border-radius: 11px;
+            margin: 4px 0 14px 0;
+            box-shadow: 0 4px 14px rgba(0,0,0,.15);
+        }
+
+        .exec-table-wrap table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            width: 100% !important;
+            min-width: 720px;
+            margin: 0 !important;
+            font-size: 11.5px !important;
+            color: #F8FAFC !important;
+        }
+
+        .exec-table-wrap thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #12365E !important;
+            color: #FFFFFF !important;
+            font-weight: 800 !important;
+            text-align: center !important;
+            padding: 9px 10px !important;
+            border-right: 1px solid #29415E !important;
+            border-bottom: 1px solid #3B5C82 !important;
+            white-space: nowrap !important;
+        }
+
+        .exec-table-wrap thead th:first-child {
+            text-align: left !important;
+        }
+
+        .exec-table-wrap tbody td {
+            background: #101C2C !important;
+            color: #F8FAFC !important;
+            padding: 8px 10px !important;
+            border-right: 1px solid #20364F !important;
+            border-bottom: 1px solid #20364F !important;
+            text-align: right !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+        }
+
+        .exec-table-wrap tbody tr:nth-child(even) td {
+            background: #13243A !important;
+        }
+
+        .exec-table-wrap tbody tr:hover td {
+            background: #19334F !important;
+        }
+
+        .exec-table-wrap tbody td:first-child {
+            text-align: left !important;
+            font-weight: 650 !important;
+            white-space: normal !important;
+            min-width: 190px;
+        }
+
+        /* Acentos semánticos: discretos, no tipo semáforo */
+        .exec-table-wrap td.cell-accent {
+            color: #93C5FD !important;
+            font-weight: 700 !important;
+        }
+        .exec-table-wrap td.cell-good {
+            color: #86EFAC !important;
+            font-weight: 700 !important;
+        }
+        .exec-table-wrap td.cell-warn {
+            color: #FBBF24 !important;
+            font-weight: 700 !important;
+        }
+        .exec-table-wrap td.cell-bad {
+            color: #FCA5A5 !important;
+            font-weight: 700 !important;
+        }
+
+        .exec-table-wrap::-webkit-scrollbar {
+            height: 9px;
+            width: 9px;
+        }
+        .exec-table-wrap::-webkit-scrollbar-track {
+            background: #0B1626;
+        }
+        .exec-table-wrap::-webkit-scrollbar-thumb {
+            background: #315A86;
+            border-radius: 8px;
+        }
+
+        .exec-table-note {
+            color: #94A3B8;
+            font-size: 10px;
+            margin-top: -7px;
+            margin-bottom: 8px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def _table_cell_classes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aplica acentos cromáticos discretos según el significado de la columna.
+    El fondo permanece Dark Navy; sólo cambia el color tipográfico de celdas clave.
+    """
+    classes = pd.DataFrame("", index=df.index, columns=df.columns)
+
+    for col in df.columns:
+        label = str(col).strip().upper()
+
+        # Pendientes / exposición: ámbar.
+        if "PENDIENTE" in label:
+            classes[col] = "cell-warn"
+
+        # Porcentajes, participación, rentabilidad y variaciones: azul claro.
+        elif (
+            "%" in label
+            or "RENTABILIDAD" in label
+            or "PARTICIPACIÓN" in label
+            or "PARTICIPACION" in label
+            or "VARIACIÓN" in label
+            or "VARIACION" in label
+            or "COBERTURA" in label
+        ):
+            classes[col] = "cell-accent"
+
+        # Dinero efectivamente realizado / margen: verde suave.
+        elif (
+            "RECAUDADO" in label
+            or "PAGADO" in label
+            or label == "MARGEN"
+            or "CAJA OPERATIVA" in label
+        ):
+            classes[col] = "cell-good"
+
+    # Valores negativos en columnas económicas relevantes: rojo suave.
+    for col in df.columns:
+        label = str(col).strip().upper()
+        if any(k in label for k in ["MARGEN", "CAJA OPERATIVA", "VARIACIÓN", "VARIACION"]):
+            numeric = pd.to_numeric(df[col], errors="coerce")
+            neg_mask = numeric.lt(0)
+            if neg_mask.any():
+                classes.loc[neg_mask, col] = "cell-bad"
+
+    # Estados operativos: acento semántico moderado.
+    for col in df.columns:
+        if str(col).strip().upper() in {"ESTADO", "ESTADO OP", "ESTADO OPERATIVO"}:
+            values = df[col].astype("string").str.upper().fillna("")
+            classes.loc[values.str.contains("CUMPLIDO", na=False), col] = "cell-good"
+            classes.loc[values.str.contains("PROGRAM", na=False), col] = "cell-warn"
+            classes.loc[values.str.contains("TRANSITO", na=False), col] = "cell-warn"
+
+    return classes
+
+
+def executive_dataframe(
+    data,
+    use_container_width=True,
+    hide_index=True,
+    height=None,
+    **kwargs,
+):
+    """
+    Sustituto visual de st.dataframe para todas las tablas del dashboard.
+    Conserva los formatos de pandas Styler y añade:
+    encabezado azul, filas dark navy, zebra suave, hover, scroll y contraste alto.
+    """
+    if isinstance(data, Styler):
+        styler = data
+        df_table = styler.data
+    elif isinstance(data, pd.DataFrame):
+        df_table = data
+        styler = data.style
+    else:
+        # Compatibilidad defensiva.
+        try:
+            df_table = pd.DataFrame(data)
+            styler = df_table.style
+        except Exception:
+            return st.markdown(str(data))
+
+    # Ocultar índice para mantener estética ejecutiva.
+    if hide_index:
+        try:
+            styler = styler.hide(axis="index")
+        except Exception:
+            pass
+
+    # Clases semánticas generales.
+    try:
+        styler = styler.set_td_classes(_table_cell_classes(df_table))
+    except Exception:
+        pass
+
+    # El header/filas se fuerzan por CSS global con !important.
+    try:
+        styler = styler.set_table_attributes('class="exec-table"')
+    except Exception:
+        pass
+
+    html_table = styler.to_html()
+
+    max_h = int(height) if isinstance(height, (int, float)) else 460
+    max_h = max(160, min(max_h, 620))
+
+    st.markdown(
+        f'<div class="exec-table-wrap" style="max-height:{max_h}px;">{html_table}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# Intercepta TODAS las tablas existentes sin reescribir 20 bloques por separado.
+st.dataframe = executive_dataframe
 
 
 # =========================================================
@@ -1993,6 +2222,10 @@ st.markdown(
 st.caption(
     "Comparación de los clientes con mayor participación por volumen de servicios "
     "y por producción. Se separa del estado operativo para mejorar la lectura ejecutiva."
+)
+st.markdown(
+    '<div class="exec-table-note">Tablas homologadas al sistema visual ejecutivo: encabezado azul, fondo Dark Navy y acentos semánticos discretos.</div>',
+    unsafe_allow_html=True,
 )
 
 # Dos tablas amplias: evita comprimir nombres y valores.
