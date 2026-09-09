@@ -311,7 +311,7 @@ def norm_state(s: pd.Series) -> pd.Series:
 
 @st.cache_data(show_spinner=False)
 def load_excel(raw: bytes) -> pd.DataFrame:
-    df = pd.read_excel(BytesIO(raw), sheet_name="TODOS")
+    df = pd.read_excel(BytesIO(raw), sheet_name="TODOS", engine="openpyxl")
     df.columns = [str(c).strip() for c in df.columns]
 
     missing = [c for c in REQUIRED if c not in df.columns]
@@ -686,50 +686,71 @@ def github_headers() -> dict:
 
 
 def fetch_master_from_github():
-    """Obtiene siempre la versión vigente del Excel guardado en GitHub."""
+    """Descarga el Excel maestro como binario RAW autenticado."""
     if not GITHUB_SHARED_READY:
         return None
 
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_MASTER_PATH}"
-    try:
-        response = requests.get(
-            url,
-            headers=github_headers(),
-            params={"ref": GITHUB_BRANCH},
-            timeout=25,
-        )
-        if response.status_code != 200:
-            return None
 
-        payload = response.json()
-        raw_file = base64.b64decode(payload["content"])
-
-        updated_at = None
-        commits_url = f"https://api.github.com/repos/{GITHUB_REPO}/commits"
-        commits = requests.get(
-            commits_url,
-            headers=github_headers(),
-            params={"path": GITHUB_MASTER_PATH, "sha": GITHUB_BRANCH, "per_page": 1},
-            timeout=20,
-        )
-        if commits.status_code == 200 and commits.json():
-            iso_date = commits.json()[0].get("commit", {}).get("committer", {}).get("date")
-            if iso_date:
-                updated_at = (
-                    datetime.fromisoformat(iso_date.replace("Z", "+00:00"))
-                    .astimezone(BOGOTA_TZ)
-                )
-
-        return {
-            "raw": raw_file,
-            "sha": payload.get("sha"),
-            "name": Path(GITHUB_MASTER_PATH).name,
-            "source": "GitHub compartido",
-            "updated_at": updated_at,
-        }
-    except Exception:
+    # Metadata para verificar que existe y obtener SHA.
+    meta_headers = github_headers()
+    meta_headers["Accept"] = "application/vnd.github+json"
+    meta_response = requests.get(
+        url, headers=meta_headers, params={"ref": GITHUB_BRANCH}, timeout=25
+    )
+    if meta_response.status_code != 200:
         return None
 
+    meta = meta_response.json()
+
+    # Para Excel de varios MB no usamos el campo content/base64 del JSON.
+    # Pedimos directamente los bytes RAW reales del archivo.
+    raw_headers = github_headers()
+    raw_headers["Accept"] = "application/vnd.github.raw+json"
+    raw_response = requests.get(
+        url, headers=raw_headers, params={"ref": GITHUB_BRANCH}, timeout=60
+    )
+    if raw_response.status_code != 200:
+        return None
+
+    raw_file = raw_response.content
+    if not raw_file:
+        return None
+
+    if raw_file.startswith(b"version https://git-lfs.github.com/spec"):
+        raise ValueError(
+            "El archivo de GitHub es un puntero Git LFS, no el Excel real."
+        )
+
+    # Los .xlsx son contenedores ZIP y comienzan normalmente por PK.
+    if not raw_file.startswith(b"PK"):
+        raise ValueError(
+            "GitHub no devolvió un archivo .xlsx válido."
+        )
+
+    updated_at = None
+    commits_url = f"https://api.github.com/repos/{GITHUB_REPO}/commits"
+    commits = requests.get(
+        commits_url,
+        headers=github_headers(),
+        params={"path": GITHUB_MASTER_PATH, "sha": GITHUB_BRANCH, "per_page": 1},
+        timeout=20,
+    )
+    if commits.status_code == 200 and commits.json():
+        iso_date = commits.json()[0].get("commit", {}).get("committer", {}).get("date")
+        if iso_date:
+            updated_at = (
+                datetime.fromisoformat(iso_date.replace("Z", "+00:00"))
+                .astimezone(BOGOTA_TZ)
+            )
+
+    return {
+        "raw": raw_file,
+        "sha": meta.get("sha"),
+        "name": Path(GITHUB_MASTER_PATH).name,
+        "source": "GitHub compartido",
+        "updated_at": updated_at,
+    }
 
 def publish_master_to_github(raw_file: bytes, original_name: str):
     """Publica la nueva base como archivo maestro compartido."""
@@ -3037,4 +3058,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
