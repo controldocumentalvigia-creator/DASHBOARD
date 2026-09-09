@@ -1964,7 +1964,7 @@ if ultimo_periodo_incompleto:
 # =========================================================
 # TENDENCIAS
 # =========================================================
-c1, c2 = st.columns(2)
+c1, c2 = st.columns(2, gap="large")
 with c1:
     st.markdown('<div class="section-title">SERVICIOS POR PERIODO</div>', unsafe_allow_html=True)
     st.plotly_chart(
@@ -1983,54 +1983,126 @@ with c2:
 
 
 # =========================================================
-# TOP CLIENTES + ESTADOS
+# CLIENTES DESTACADOS + ESTADO OPERATIVO
 # =========================================================
-a, b, c = st.columns([1, 1, 1.05])
+st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">CLIENTES DESTACADOS</div>',
+    unsafe_allow_html=True,
+)
+st.caption(
+    "Comparación de los clientes con mayor participación por volumen de servicios "
+    "y por producción. Se separa del estado operativo para mejorar la lectura ejecutiva."
+)
+
+# Dos tablas amplias: evita comprimir nombres y valores.
+a, b = st.columns(2, gap="large")
 
 with a:
-    st.markdown('<div class="section-title">TOP CLIENTES POR SERVICIOS</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subsection-tag">TOP CLIENTES POR SERVICIOS</div>',
+        unsafe_allow_html=True,
+    )
     top_p = top_table(df, "CLIENTE", "Servicios", 7)
     total_p = max(prod, 1)
-    show = top_p[["CLIENTE", "Servicios"]].copy()
-    show["Participación %"] = show["Servicios"] / total_p
-    show.columns = ["Cliente", "Servicios", "Participación %"]
+    show_serv = top_p[["CLIENTE", "Servicios"]].copy()
+    show_serv["Participación %"] = show_serv["Servicios"] / total_p
+    show_serv.columns = ["Cliente", "Servicios", "Participación %"]
+
+    styled_serv = (
+        show_serv.style
+        .format({"Servicios": "{:,.0f}", "Participación %": "{:.2%}"})
+        .set_properties(**{
+            "background-color": "#101C2C",
+            "color": "#F8FAFC",
+            "border-color": "#29415E",
+        })
+        .set_table_styles([
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#12365E"),
+                    ("color", "#FFFFFF"),
+                    ("font-weight", "700"),
+                    ("border-color", "#29415E"),
+                ],
+            }
+        ])
+    )
     st.dataframe(
-        show.style.format({"Servicios": "{:,.0f}", "Participación %": "{:.2%}"}),
+        styled_serv,
         use_container_width=True,
         hide_index=True,
-        height=310,
+        height=300,
     )
 
 with b:
-    st.markdown('<div class="section-title">TOP CLIENTES POR PRODUCCIÓN</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subsection-tag">TOP CLIENTES POR PRODUCCIÓN</div>',
+        unsafe_allow_html=True,
+    )
     top_f = top_table(df, "CLIENTE", "Facturacion", 7)
-    show = top_f[["CLIENTE", "Facturacion", "Margen", "Rentabilidad %"]].copy()
-    show.columns = ["Cliente", "Producción", "Margen", "Rentabilidad %"]
-    st.dataframe(
-        show.style.format({
+    show_prod = top_f[["CLIENTE", "Facturacion", "Margen", "Rentabilidad %"]].copy()
+    show_prod.columns = ["Cliente", "Producción", "Margen", "Rentabilidad %"]
+
+    styled_prod = (
+        show_prod.style
+        .format({
             "Producción": lambda x: f"${x:,.0f}",
             "Margen": lambda x: f"${x:,.0f}",
             "Rentabilidad %": "{:.2%}",
-        }),
+        })
+        .set_properties(**{
+            "background-color": "#101C2C",
+            "color": "#F8FAFC",
+            "border-color": "#29415E",
+        })
+        .set_table_styles([
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#12365E"),
+                    ("color", "#FFFFFF"),
+                    ("font-weight", "700"),
+                    ("border-color", "#29415E"),
+                ],
+            }
+        ])
+    )
+    st.dataframe(
+        styled_prod,
         use_container_width=True,
         hide_index=True,
-        height=310,
+        height=300,
     )
 
-with c:
-    st.markdown('<div class="section-title">ESTADO OPERATIVO</div>', unsafe_allow_html=True)
-    status = (
-        valid["ESTADO OP N"]
-        .value_counts()
-        .rename_axis("Estado")
-        .reset_index(name="Servicios")
-    )
-    status["%"] = status["Servicios"] / prod
+# Separación visual clara antes del estado operativo.
+st.markdown('<div style="height:18px"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">ESTADO OPERATIVO</div>',
+    unsafe_allow_html=True,
+)
+st.caption(
+    "Distribución de los servicios válidos por estado. "
+    "El gráfico y el detalle se muestran en una fila independiente para evitar saturación visual."
+)
+
+status = (
+    valid["ESTADO OP N"]
+    .value_counts()
+    .rename_axis("Estado")
+    .reset_index(name="Servicios")
+)
+status["%"] = status["Servicios"] / prod
+
+s1, s2 = st.columns([0.9, 1.1], gap="large")
+
+with s1:
     fig = go.Figure(
         go.Pie(
             labels=status["Estado"],
             values=status["Servicios"],
-            hole=.58,
+            hole=.60,
             textinfo="percent",
             marker=dict(
                 colors=[
@@ -2047,20 +2119,54 @@ with c:
         )
     )
     fig.update_layout(
-        height=220,
-        margin=dict(l=0, r=0, t=10, b=0),
+        height=300,
+        margin=dict(l=10, r=10, t=15, b=15),
         showlegend=True,
-        legend=dict(font=dict(color=TEXT), orientation="v"),
+        legend=dict(
+            font=dict(color=TEXT, size=11),
+            orientation="v",
+            x=1.00,
+            y=0.95,
+        ),
         paper_bgcolor="#07111F",
+        plot_bgcolor="#07111F",
         font=dict(color=TEXT),
     )
     st.plotly_chart(fig, use_container_width=True, key="status_donut")
+
+with s2:
+    st.markdown(
+        '<div class="subsection-tag">DETALLE POR ESTADO</div>',
+        unsafe_allow_html=True,
+    )
+    styled_status = (
+        status.style
+        .format({"Servicios": "{:,.0f}", "%": "{:.2%}"})
+        .set_properties(**{
+            "background-color": "#101C2C",
+            "color": "#F8FAFC",
+            "border-color": "#29415E",
+        })
+        .set_table_styles([
+            {
+                "selector": "th",
+                "props": [
+                    ("background-color", "#12365E"),
+                    ("color", "#FFFFFF"),
+                    ("font-weight", "700"),
+                    ("border-color", "#29415E"),
+                ],
+            }
+        ])
+    )
     st.dataframe(
-        status.style.format({"Servicios": "{:,.0f}", "%": "{:.2%}"}),
+        styled_status,
         use_container_width=True,
         hide_index=True,
-        height=180,
+        height=300,
     )
+
+st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 
 
 # =========================================================
