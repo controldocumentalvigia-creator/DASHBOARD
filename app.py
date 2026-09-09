@@ -790,7 +790,7 @@ else:
     # Si hay Secrets configurados, consultar GitHub en tiempo real.
     master_info = fetch_master_from_github()
 
-# Respaldo: archivo incluido en el repositorio/despliegue.
+# Respaldo 1: archivo maestro con nombre esperado en el repositorio/despliegue.
 if master_info is None and MASTER_FILE.exists():
     master_info = {
         "raw": MASTER_FILE.read_bytes(),
@@ -799,12 +799,68 @@ if master_info is None and MASTER_FILE.exists():
         "updated_at": None,
     }
 
+# Respaldo 2: autodetectar cualquier Excel local que contenga la hoja TODOS.
+# Esto evita que el dashboard quede vacío si el archivo fue subido con otro nombre.
 if master_info is None:
-    st.error(
-        "No existe una base vigente para mostrar. "
-        "Sube el archivo maestro al repositorio o configura la persistencia compartida de GitHub."
+    local_candidates = sorted(
+        [p for p in Path(".").glob("*.xlsx") if not p.name.startswith("~$")],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
     )
-    st.stop()
+    for candidate in local_candidates:
+        try:
+            candidate_raw = candidate.read_bytes()
+            # Validar estructura con la misma función oficial del dashboard.
+            _candidate_df = load_excel(candidate_raw)
+            if _candidate_df["FECHA_CARGA"].notna().sum() > 0:
+                master_info = {
+                    "raw": candidate_raw,
+                    "name": candidate.name,
+                    "source": "Base Excel autodetectada en el repositorio",
+                    "updated_at": datetime.fromtimestamp(
+                        candidate.stat().st_mtime, tz=BOGOTA_TZ
+                    ),
+                }
+                break
+        except Exception:
+            continue
+
+# Respaldo 3: si NO existe ninguna base persistente, permitir carga temporal
+# en lugar de dejar una pantalla de error sin salida.
+if master_info is None:
+    st.warning(
+        "⚠️ No se encontró una base maestra persistente en el despliegue. "
+        "Puedes cargar una base ahora para visualizar el dashboard en esta sesión."
+    )
+    emergency_upload = st.file_uploader(
+        "Cargar base temporal para iniciar",
+        type=["xlsx"],
+        accept_multiple_files=False,
+        key="emergency_master_upload",
+        help="La hoja debe llamarse TODOS y conservar las columnas requeridas.",
+    )
+
+    if emergency_upload is None:
+        st.info(
+            "Para que el dashboard abra automáticamente para todos, deja al menos un archivo Excel "
+            "válido en el repositorio o configura la persistencia compartida desde Streamlit Secrets."
+        )
+        st.stop()
+
+    emergency_raw = emergency_upload.getvalue()
+    try:
+        emergency_df = load_excel(emergency_raw)
+        if emergency_df["FECHA_CARGA"].notna().sum() == 0:
+            raise ValueError("La columna CARGA no contiene fechas válidas.")
+        master_info = {
+            "raw": emergency_raw,
+            "name": emergency_upload.name,
+            "source": "Base temporal cargada en esta sesión",
+            "updated_at": datetime.now(BOGOTA_TZ),
+        }
+    except Exception as exc:
+        st.error(f"❌ La base temporal no es válida: {exc}")
+        st.stop()
 
 raw = master_info["raw"]
 
@@ -2981,3 +3037,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
