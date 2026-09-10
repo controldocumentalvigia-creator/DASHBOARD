@@ -609,6 +609,117 @@ def executive_plotly_chart(figure_or_data, *args, **kwargs):
 st.plotly_chart = executive_plotly_chart
 
 
+
+# =========================================================
+# STORYTELLING GERENCIAL · JERARQUÍA Y LECTURA EN Z
+# =========================================================
+st.markdown(
+    """
+    <style>
+        .story-banner {
+            background: linear-gradient(110deg, #0D1A2B 0%, #112B49 100%);
+            border: 1px solid #29415E;
+            border-left: 5px solid #60A5FA;
+            border-radius: 12px;
+            padding: 13px 16px;
+            margin: 6px 0 16px 0;
+            box-shadow: 0 4px 14px rgba(0,0,0,.16);
+        }
+        .story-banner .eyebrow {
+            color: #93C5FD;
+            font-size: 10px;
+            font-weight: 850;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .story-banner .story-text {
+            color: #F8FAFC;
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.48;
+        }
+        .story-path {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: #CBD5E1;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .35px;
+            text-transform: uppercase;
+            margin: 2px 0 18px 0;
+        }
+        .story-path .node {
+            background: #101C2C;
+            border: 1px solid #29415E;
+            border-radius: 18px;
+            padding: 6px 10px;
+            color: #DCE8F8;
+        }
+        .story-path .arrow {
+            color: #60A5FA;
+            font-size: 14px;
+            font-weight: 900;
+        }
+        .question-tag {
+            color: #93C5FD;
+            font-size: 10px;
+            font-weight: 850;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin: 4px 0 5px 0;
+        }
+        .focus-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 7px 0 16px 0;
+        }
+        .focus-card {
+            background: #101C2C;
+            border: 1px solid #29415E;
+            border-top: 3px solid #F59E0B;
+            border-radius: 11px;
+            padding: 11px 12px;
+            min-height: 100px;
+        }
+        .focus-card .label {
+            color: #94A3B8;
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .45px;
+        }
+        .focus-card .value {
+            color: #F8FAFC;
+            font-size: 15px;
+            font-weight: 850;
+            margin-top: 6px;
+            line-height: 1.18;
+        }
+        .focus-card .note {
+            color: #CBD5E1;
+            font-size: 10px;
+            margin-top: 5px;
+            line-height: 1.25;
+        }
+        .story-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #29415E, transparent);
+            margin: 15px 0 17px 0;
+        }
+        @media (max-width: 1100px) {
+            .focus-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # =========================================================
 # UTILIDADES
 # =========================================================
@@ -966,7 +1077,7 @@ if page_mode == "CENTRO DE CONTROL":
         """
         <div class="hero">
             <div class="hero-title">📊 CENTRO DE CONTROL GERENCIAL VSE</div>
-            <div class="hero-sub">Servicios · Estados · Cierre · Clientes · Recursos · Productividad</div>
+            <div class="hero-sub">Qué pasó · Cómo cerramos · Dónde está el problema · Quién lo explica · Dónde actuar</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -976,7 +1087,7 @@ else:
         """
         <div class="hero">
             <div class="hero-title">💹 POSICIÓN FINANCIERA Y PROYECCIONES</div>
-            <div class="hero-sub">Producción · Recaudo · Costos · Obligaciones · Margen · Proyección próximo mes</div>
+            <div class="hero-sub">Generamos · Cobramos · Pagamos · Medimos riesgo · Proyectamos</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1568,7 +1679,37 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
     ctrl_rent = True if produccion_fin == 0 else abs((margen_fin / produccion_fin) - rent_fin) < tol_pct
     controles_ok = all([ctrl_margen, ctrl_cliente, ctrl_prove, ctrl_rent])
 
-    st.markdown("## 1. Resultado económico")
+    # ---------------------------------------------------------
+    # MENSAJE EJECUTIVO FINANCIERO
+    # ---------------------------------------------------------
+    fin_story_text = (
+        f"La operación acumula {fmt_money(produccion_fin)} de producción con una "
+        f"rentabilidad directa de {fmt_pct(rent_fin)}. "
+        f"Se ha recaudado {fmt_money(recaudado_cliente)} ({fmt_pct(pct_recaudo)}) "
+        f"y se han pagado {fmt_money(pagado_terceros)} a terceros. "
+        f"La caja operativa del universo analizado es {fmt_money(caja_operativa)}; "
+        f"quedan {fmt_money(pendiente_recaudar)} por recaudar y "
+        f"{fmt_money(pendiente_pagar)} por pagar."
+    )
+
+    st.markdown(
+        f"""
+        <div class="story-banner">
+            <div class="eyebrow">Lectura ejecutiva del periodo</div>
+            <div class="story-text">{fin_story_text}</div>
+        </div>
+        <div class="story-path">
+            <span class="node">Generamos</span><span class="arrow">→</span>
+            <span class="node">Cobramos</span><span class="arrow">→</span>
+            <span class="node">Pagamos</span><span class="arrow">→</span>
+            <span class="node">Medimos riesgo</span><span class="arrow">→</span>
+            <span class="node">Proyectamos</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("## 1. ¿Qué generamos? · Resultado económico")
     st.caption(
         "Primera lectura ejecutiva: cuánto se produjo, cuánto costó prestar los servicios "
         "y qué margen directo dejó la operación."
@@ -1584,7 +1725,7 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
     with e4:
         fin_card("Rentabilidad directa", fmt_pct(rent_fin), "Margen directo / Producción", "good" if (pd.notna(rent_fin) and rent_fin >= 0) else "bad")
 
-    st.markdown("## 2. Recaudo y obligaciones")
+    st.markdown("## 2. ¿Cuánto convertimos en caja? · Recaudo y obligaciones")
     st.caption(
         "Segunda lectura: qué parte de la producción ya fue recaudada y qué parte del costo "
         "ya fue pagada a terceros."
@@ -1608,7 +1749,7 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
     with pt3:
         fin_card("% Pago a terceros", fmt_pct(pct_pago_terceros), "Pagado a terceros / Costo del Servicio")
 
-    st.markdown("## 3. Posición de caja operativa")
+    st.markdown("## 3. ¿Qué nos queda? · Posición de caja operativa")
     cx1, cx2, cx3 = st.columns(3)
     with cx1:
         fin_card("Caja operativa", fmt_money(caja_operativa), "Recaudado cliente - Pagado a terceros", "good" if caja_operativa >= 0 else "bad")
@@ -1676,7 +1817,7 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
 
     cliente_fin = grouped_financial(fin, ["CLIENTE"]).sort_values("Produccion", ascending=False).reset_index(drop=True)
 
-    st.markdown("## 4. Evolución financiera mensual")
+    st.markdown("## 4. ¿Cómo llegamos hasta aquí? · Evolución mensual")
     st.caption(
         "Comportamiento mes a mes usando FECHA CUM como fecha de corte financiero-operativo. "
         "FACTURADO corresponde a servicios en estado CUMPLIDO; RECAUDADO corresponde a ESTADO FA = FACT DEFINITIVA; "
@@ -1843,57 +1984,369 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
         st.info("No hay registros con FECHA CUM para construir la evolución financiera mensual.")
 
 
-    st.markdown("## 5. Análisis por cliente y terceros")
-    st.markdown("### 5.1 Recaudo por cliente")
-    st.markdown('<div class="section-title">PRODUCCIÓN · RECAUDADO · PENDIENTE POR RECAUDAR POR CLIENTE</div>', unsafe_allow_html=True)
-    top_cli = cliente_fin.head(15)
-    fig_cli = go.Figure()
-    for col, name, color in [("Produccion", "Producción", ROYAL_BLUE), ("Recaudado", "Recaudado", GREEN), ("Pendiente Recaudar", "Pendiente por Recaudar", AMBER)]:
-        fig_cli.add_trace(go.Bar(x=top_cli["CLIENTE"], y=top_cli[col], name=name, marker_color=color, hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:,.0f}}<extra></extra>"))
-    fig_cli.update_layout(barmode="group", height=440, margin=dict(l=20,r=20,t=45,b=140), paper_bgcolor="#07111F", plot_bgcolor="#0F1C2E", font=dict(color="#E8EEF7"), legend=dict(orientation="h", y=1.16, x=0, font=dict(color="#F8FAFC", size=12)), xaxis=dict(tickangle=-45, gridcolor="#263B55"), yaxis=dict(title="COP", gridcolor="#263B55"), bargap=.22, bargroupgap=.06)
-    st.plotly_chart(fig_cli, use_container_width=True, key="fin_cliente_chart")
-
-    cliente_show = cliente_fin[["CLIENTE", "Servicios", "Produccion", "Recaudado", "Pendiente Recaudar", "% Recaudo", "Costo", "Pagado Terceros", "Pendiente Pagar", "% Pago Terceros", "Margen", "Rentabilidad"]].copy()
-    cliente_show.columns = ["Cliente", "Servicios", "Producción", "Recaudado", "Pendiente por Recaudar", "% Recaudo", "Costo del Servicio", "Pagado a Terceros", "Pendiente por Pagar", "% Pago Terceros", "Margen", "Rentabilidad"]
-    st.dataframe(cliente_show.style.format({"Servicios":"{:,.0f}", "Producción":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Recaudado":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Pendiente por Recaudar":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Costo del Servicio":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Pagado a Terceros":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Pendiente por Pagar":lambda x: "$"+f"{x:,.0f}".replace(",","."), "Margen":lambda x: "$"+f"{x:,.0f}".replace(",","."), "% Recaudo":"{:.2%}", "% Pago Terceros":"{:.2%}", "Rentabilidad":"{:.2%}"}), use_container_width=True, hide_index=True, height=460)
-
-    st.markdown("### 5.2 Pagos a terceros")
-    supplier_mode = st.radio("Analizar obligaciones por", ["CONDUCTOR", "PLACA", "CLIENTE"], horizontal=True, key="supplier_mode_fin")
-    supplier_col = {"CONDUCTOR":"CONDUCTOR_NOMBRE", "PLACA":"PLACA", "CLIENTE":"CLIENTE"}[supplier_mode]
-    supplier_fin = grouped_financial(fin, [supplier_col]).sort_values("Costo", ascending=False).reset_index(drop=True)
-    top_sup = supplier_fin.head(15)
-    fig_sup = go.Figure()
-    for col, name, color in [("Costo", "Costo del Servicio", ROYAL_BLUE), ("Pagado Terceros", "Pagado a Terceros", GREEN), ("Pendiente Pagar", "Pendiente por Pagar", AMBER)]:
-        fig_sup.add_trace(go.Bar(x=top_sup[supplier_col], y=top_sup[col], name=name, marker_color=color, hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:,.0f}}<extra></extra>"))
-    fig_sup.update_layout(barmode="group", height=440, margin=dict(l=20,r=20,t=45,b=140), paper_bgcolor="#07111F", plot_bgcolor="#0F1C2E", font=dict(color="#E8EEF7"), legend=dict(orientation="h", y=1.16, x=0, font=dict(color="#F8FAFC", size=12)), xaxis=dict(tickangle=-45, gridcolor="#263B55"), yaxis=dict(title="COP", gridcolor="#263B55"))
-    st.plotly_chart(fig_sup, use_container_width=True, key=f"fin_supplier_chart_{supplier_mode}")
-
-    tercero_det = grouped_financial(fin, ["CONDUCTOR_NOMBRE", "PLACA", "CLIENTE"]).sort_values("Pendiente Pagar", ascending=False)
-    tercero_show = tercero_det[["CONDUCTOR_NOMBRE","PLACA","CLIENTE","Servicios","Costo","Pagado Terceros","Pendiente Pagar","% Pago Terceros"]].copy()
-    tercero_show.columns = ["Conductor","Placa","Cliente","Servicios","Costo del Servicio","Pagado a Terceros","Pendiente por Pagar","% Pago"]
-    st.dataframe(tercero_show.style.format({"Servicios":"{:,.0f}", "Costo del Servicio":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Pagado a Terceros":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Pendiente por Pagar":lambda x:"$"+f"{x:,.0f}".replace(",","."), "% Pago":"{:.2%}"}), use_container_width=True, hide_index=True, height=470)
-
-    st.markdown("### 5.3 Exposición prioritaria")
-    ex1, ex2 = st.columns(2)
-    with ex1:
-        st.markdown('<div class="section-title">TOP CLIENTES · PENDIENTE POR RECAUDAR</div>', unsafe_allow_html=True)
-        top_pending_client = cliente_show.sort_values("Pendiente por Recaudar", ascending=False).head(10)
-        st.dataframe(top_pending_client[["Cliente","Producción","Recaudado","Pendiente por Recaudar","% Recaudo"]].style.format({"Producción":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Recaudado":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Pendiente por Recaudar":lambda x:"$"+f"{x:,.0f}".replace(",","."), "% Recaudo":"{:.2%}"}), use_container_width=True, hide_index=True, height=390)
-    with ex2:
-        st.markdown('<div class="section-title">TOP TERCEROS · PENDIENTE POR PAGAR</div>', unsafe_allow_html=True)
-        top_pending_sup = supplier_fin.sort_values("Pendiente Pagar", ascending=False).head(10).copy()
-        top_pending_sup["% Pendiente"] = np.where(top_pending_sup["Costo"].ne(0), top_pending_sup["Pendiente Pagar"] / top_pending_sup["Costo"], np.nan)
-        top_pending_sup = top_pending_sup[[supplier_col,"Costo","Pagado Terceros","Pendiente Pagar","% Pendiente"]]
-        top_pending_sup.columns = [supplier_mode.title(),"Costo del Servicio","Pagado","Pendiente por Pagar","% Pendiente"]
-        st.dataframe(top_pending_sup.style.format({"Costo del Servicio":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Pagado":lambda x:"$"+f"{x:,.0f}".replace(",","."), "Pendiente por Pagar":lambda x:"$"+f"{x:,.0f}".replace(",","."), "% Pendiente":"{:.2%}"}), use_container_width=True, hide_index=True, height=390)
-
-
-
-    st.markdown("### 5.4 Rentabilidad por placa y conductor")
+    # =========================================================
+    # 5. ¿DÓNDE ESTÁ EL RIESGO?
+    # =========================================================
+    st.markdown("## 5. ¿Dónde está el riesgo? · Exposición prioritaria")
     st.caption(
-        "Este análisis económico pertenece al módulo financiero. "
-        "Permite revisar producción, costo, margen, rentabilidad, recaudo y pago por recurso."
+        "Primero se identifican las concentraciones que requieren gestión: "
+        "clientes con mayor saldo pendiente de recaudo y terceros con mayor obligación pendiente."
     )
+
+    # Exposición de clientes.
+    cliente_show = cliente_fin[
+        [
+            "CLIENTE", "Servicios", "Produccion", "Recaudado",
+            "Pendiente Recaudar", "% Recaudo", "Costo",
+            "Pagado Terceros", "Pendiente Pagar",
+            "% Pago Terceros", "Margen", "Rentabilidad"
+        ]
+    ].copy()
+    cliente_show.columns = [
+        "Cliente", "Servicios", "Producción", "Recaudado",
+        "Pendiente por Recaudar", "% Recaudo", "Costo del Servicio",
+        "Pagado a Terceros", "Pendiente por Pagar",
+        "% Pago Terceros", "Margen", "Rentabilidad"
+    ]
+
+    top_pending_client = (
+        cliente_show.sort_values(
+            ["Pendiente por Recaudar", "Producción"],
+            ascending=[False, False],
+        )
+        .head(10)
+        .copy()
+    )
+
+    # Exposición de terceros: vista base por conductor.
+    supplier_by_driver = (
+        grouped_financial(fin, ["CONDUCTOR_NOMBRE"])
+        .sort_values(["Pendiente Pagar", "Costo"], ascending=[False, False])
+        .reset_index(drop=True)
+    )
+    top_pending_sup = supplier_by_driver.head(10).copy()
+    top_pending_sup["% Pendiente"] = np.where(
+        top_pending_sup["Costo"].ne(0),
+        top_pending_sup["Pendiente Pagar"] / top_pending_sup["Costo"],
+        np.nan,
+    )
+    top_pending_sup = top_pending_sup[
+        [
+            "CONDUCTOR_NOMBRE", "Costo", "Pagado Terceros",
+            "Pendiente Pagar", "% Pendiente"
+        ]
+    ].copy()
+    top_pending_sup.columns = [
+        "Conductor", "Costo del Servicio", "Pagado",
+        "Pendiente por Pagar", "% Pendiente"
+    ]
+
+    rx1, rx2 = st.columns(2, gap="large")
+
+    with rx1:
+        st.markdown(
+            '<div class="section-title">TOP CLIENTES · PENDIENTE POR RECAUDAR</div>',
+            unsafe_allow_html=True,
+        )
+        st.dataframe(
+            top_pending_client[
+                [
+                    "Cliente", "Producción", "Recaudado",
+                    "Pendiente por Recaudar", "% Recaudo"
+                ]
+            ].style.format(
+                {
+                    "Producción": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Recaudado": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pendiente por Recaudar": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "% Recaudo": "{:.2%}",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=390,
+        )
+
+    with rx2:
+        st.markdown(
+            '<div class="section-title">TOP TERCEROS · PENDIENTE POR PAGAR</div>',
+            unsafe_allow_html=True,
+        )
+        st.dataframe(
+            top_pending_sup.style.format(
+                {
+                    "Costo del Servicio": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pagado": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pendiente por Pagar": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "% Pendiente": "{:.2%}",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=390,
+        )
+
+    # Detalle de cartera y obligaciones queda disponible, pero no interrumpe la historia principal.
+    with st.expander("🔎 Ver detalle de recaudo y pagos", expanded=False):
+        st.markdown("### Recaudo por cliente")
+
+        top_cli = cliente_fin.head(15)
+        fig_cli = go.Figure()
+        for col, name, color in [
+            ("Produccion", "Producción", ROYAL_BLUE),
+            ("Recaudado", "Recaudado", GREEN),
+            ("Pendiente Recaudar", "Pendiente por Recaudar", AMBER),
+        ]:
+            fig_cli.add_trace(
+                go.Bar(
+                    x=top_cli["CLIENTE"],
+                    y=top_cli[col],
+                    name=name,
+                    marker_color=color,
+                    hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:,.0f}}<extra></extra>",
+                )
+            )
+        fig_cli.update_layout(
+            barmode="group",
+            height=440,
+            margin=dict(l=20, r=20, t=70, b=140),
+            legend=dict(
+                orientation="h",
+                y=1.16,
+                x=0,
+                font=dict(color="#F8FAFC", size=12),
+            ),
+            xaxis=dict(tickangle=-45),
+            yaxis=dict(title="COP"),
+            bargap=.22,
+            bargroupgap=.06,
+        )
+        st.plotly_chart(fig_cli, use_container_width=True, key="fin_cliente_chart")
+
+        st.dataframe(
+            cliente_show.style.format(
+                {
+                    "Servicios": "{:,.0f}",
+                    "Producción": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Recaudado": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pendiente por Recaudar": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Costo del Servicio": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pagado a Terceros": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pendiente por Pagar": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Margen": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "% Recaudo": "{:.2%}",
+                    "% Pago Terceros": "{:.2%}",
+                    "Rentabilidad": "{:.2%}",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=460,
+        )
+
+        st.markdown("### Pagos a terceros")
+        supplier_mode = st.radio(
+            "Analizar obligaciones por",
+            ["CONDUCTOR", "PLACA", "CLIENTE"],
+            horizontal=True,
+            key="supplier_mode_fin",
+        )
+        supplier_col = {
+            "CONDUCTOR": "CONDUCTOR_NOMBRE",
+            "PLACA": "PLACA",
+            "CLIENTE": "CLIENTE",
+        }[supplier_mode]
+
+        supplier_fin = (
+            grouped_financial(fin, [supplier_col])
+            .sort_values("Costo", ascending=False)
+            .reset_index(drop=True)
+        )
+        top_sup = supplier_fin.head(15)
+
+        fig_sup = go.Figure()
+        for col, name, color in [
+            ("Costo", "Costo del Servicio", ROYAL_BLUE),
+            ("Pagado Terceros", "Pagado a Terceros", GREEN),
+            ("Pendiente Pagar", "Pendiente por Pagar", AMBER),
+        ]:
+            fig_sup.add_trace(
+                go.Bar(
+                    x=top_sup[supplier_col],
+                    y=top_sup[col],
+                    name=name,
+                    marker_color=color,
+                    hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:,.0f}}<extra></extra>",
+                )
+            )
+        fig_sup.update_layout(
+            barmode="group",
+            height=440,
+            margin=dict(l=20, r=20, t=70, b=140),
+            legend=dict(
+                orientation="h",
+                y=1.16,
+                x=0,
+                font=dict(color="#F8FAFC", size=12),
+            ),
+            xaxis=dict(tickangle=-45),
+            yaxis=dict(title="COP"),
+        )
+        st.plotly_chart(
+            fig_sup,
+            use_container_width=True,
+            key=f"fin_supplier_chart_{supplier_mode}",
+        )
+
+        tercero_det = (
+            grouped_financial(fin, ["CONDUCTOR_NOMBRE", "PLACA", "CLIENTE"])
+            .sort_values("Pendiente Pagar", ascending=False)
+        )
+        tercero_show = tercero_det[
+            [
+                "CONDUCTOR_NOMBRE", "PLACA", "CLIENTE", "Servicios",
+                "Costo", "Pagado Terceros", "Pendiente Pagar",
+                "% Pago Terceros"
+            ]
+        ].copy()
+        tercero_show.columns = [
+            "Conductor", "Placa", "Cliente", "Servicios",
+            "Costo del Servicio", "Pagado a Terceros",
+            "Pendiente por Pagar", "% Pago"
+        ]
+
+        st.dataframe(
+            tercero_show.style.format(
+                {
+                    "Servicios": "{:,.0f}",
+                    "Costo del Servicio": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pagado a Terceros": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Pendiente por Pagar": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "% Pago": "{:.2%}",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=470,
+        )
+
+    # Para exportación, tercero_show debe existir aun si el expander no se abre.
+    tercero_det = (
+        grouped_financial(fin, ["CONDUCTOR_NOMBRE", "PLACA", "CLIENTE"])
+        .sort_values("Pendiente Pagar", ascending=False)
+    )
+    tercero_show = tercero_det[
+        [
+            "CONDUCTOR_NOMBRE", "PLACA", "CLIENTE", "Servicios",
+            "Costo", "Pagado Terceros", "Pendiente Pagar",
+            "% Pago Terceros"
+        ]
+    ].copy()
+    tercero_show.columns = [
+        "Conductor", "Placa", "Cliente", "Servicios",
+        "Costo del Servicio", "Pagado a Terceros",
+        "Pendiente por Pagar", "% Pago"
+    ]
+
+    # =========================================================
+    # 6. ¿QUÉ TAN RENTABLE ES CADA PARTE DEL NEGOCIO?
+    # =========================================================
+    st.markdown("## 6. ¿Qué tan rentable es cada parte del negocio?")
+    st.caption(
+        "Después de identificar la exposición, se revisa qué clientes y recursos "
+        "explican el margen y la rentabilidad."
+    )
+
+    rent_client = (
+        cliente_fin.sort_values("Produccion", ascending=False)
+        .head(12)
+        .copy()
+    )
+
+    pr1, pr2 = st.columns([1.05, 0.95], gap="large")
+
+    with pr1:
+        st.markdown(
+            '<div class="section-title">MARGEN Y RENTABILIDAD · PRINCIPALES CLIENTES</div>',
+            unsafe_allow_html=True,
+        )
+
+        fig_rent_cli = go.Figure()
+        fig_rent_cli.add_trace(
+            go.Bar(
+                x=rent_client["CLIENTE"],
+                y=rent_client["Margen"],
+                name="Margen",
+                marker_color=GREEN,
+                hovertemplate="<b>%{x}</b><br>Margen: $%{y:,.0f}<extra></extra>",
+            )
+        )
+        fig_rent_cli.add_trace(
+            go.Scatter(
+                x=rent_client["CLIENTE"],
+                y=rent_client["Rentabilidad"] * 100,
+                name="Rentabilidad %",
+                mode="lines+markers",
+                yaxis="y2",
+                line=dict(color=SECONDARY_BLUE, width=3),
+                marker=dict(size=8),
+                hovertemplate="<b>%{x}</b><br>Rentabilidad: %{y:.2f}%<extra></extra>",
+            )
+        )
+        fig_rent_cli.update_layout(
+            height=440,
+            margin=dict(l=20, r=55, t=70, b=140),
+            legend=dict(
+                orientation="h",
+                y=1.16,
+                x=0,
+                font=dict(color="#F8FAFC", size=12),
+            ),
+            xaxis=dict(tickangle=-40),
+            yaxis=dict(title="Margen COP"),
+            yaxis2=dict(
+                title="Rentabilidad %",
+                overlaying="y",
+                side="right",
+                ticksuffix="%",
+                showgrid=False,
+            ),
+        )
+        st.plotly_chart(
+            fig_rent_cli,
+            use_container_width=True,
+            key="fin_client_profitability",
+        )
+
+    with pr2:
+        st.markdown(
+            '<div class="section-title">DETALLE DE RENTABILIDAD POR CLIENTE</div>',
+            unsafe_allow_html=True,
+        )
+
+        rent_client_show = rent_client[
+            ["CLIENTE", "Produccion", "Costo", "Margen", "Rentabilidad"]
+        ].copy()
+        rent_client_show.columns = [
+            "Cliente", "Producción", "Costo del Servicio",
+            "Margen", "Rentabilidad"
+        ]
+
+        st.dataframe(
+            rent_client_show.style.format(
+                {
+                    "Producción": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Costo del Servicio": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Margen": lambda x: "$" + f"{x:,.0f}".replace(",", "."),
+                    "Rentabilidad": "{:.2%}",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=440,
+        )
+
+    st.markdown("### Rentabilidad por placa y conductor")
 
     fin_resource_mode = st.radio(
         "Analizar resultado económico por",
@@ -1901,8 +2354,12 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
         horizontal=True,
         key="fin_resource_economic_mode",
     )
-    fin_resource_col = "PLACA" if fin_resource_mode == "PLACA" else "CONDUCTOR_NOMBRE"
-    fin_resource_label = "Placa" if fin_resource_mode == "PLACA" else "Conductor"
+    fin_resource_col = (
+        "PLACA" if fin_resource_mode == "PLACA" else "CONDUCTOR_NOMBRE"
+    )
+    fin_resource_label = (
+        "Placa" if fin_resource_mode == "PLACA" else "Conductor"
+    )
 
     fin_resource = (
         grouped_financial(fin, [fin_resource_col])
@@ -1910,39 +2367,25 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
         .reset_index(drop=True)
     )
 
-    if fin_resource.empty:
-        st.info("No hay información económica por recurso para los filtros seleccionados.")
-    else:
+    if not fin_resource.empty:
         top_resource = fin_resource.head(12).copy()
 
         fig_resource = go.Figure()
-        fig_resource.add_trace(
-            go.Bar(
-                x=top_resource[fin_resource_col],
-                y=top_resource["Produccion"],
-                name="Producción",
-                marker_color=ROYAL_BLUE,
-                hovertemplate="<b>%{x}</b><br>Producción: $%{y:,.0f}<extra></extra>",
+        for col, name, color in [
+            ("Produccion", "Producción", ROYAL_BLUE),
+            ("Costo", "Costo del Servicio", SECONDARY_BLUE),
+            ("Margen", "Margen", GREEN),
+        ]:
+            fig_resource.add_trace(
+                go.Bar(
+                    x=top_resource[fin_resource_col],
+                    y=top_resource[col],
+                    name=name,
+                    marker_color=color,
+                    hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:,.0f}}<extra></extra>",
+                )
             )
-        )
-        fig_resource.add_trace(
-            go.Bar(
-                x=top_resource[fin_resource_col],
-                y=top_resource["Costo"],
-                name="Costo del Servicio",
-                marker_color=SECONDARY_BLUE,
-                hovertemplate="<b>%{x}</b><br>Costo: $%{y:,.0f}<extra></extra>",
-            )
-        )
-        fig_resource.add_trace(
-            go.Bar(
-                x=top_resource[fin_resource_col],
-                y=top_resource["Margen"],
-                name="Margen",
-                marker_color=GREEN,
-                hovertemplate="<b>%{x}</b><br>Margen: $%{y:,.0f}<extra></extra>",
-            )
-        )
+
         fig_resource.update_layout(
             barmode="group",
             height=430,
@@ -1953,9 +2396,10 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
                 x=0,
                 font=dict(color="#F8FAFC", size=12),
             ),
-            xaxis=dict(tickangle=-40, gridcolor="#29415E"),
-            yaxis=dict(title="COP", gridcolor="#29415E"),
+            xaxis=dict(tickangle=-40),
+            yaxis=dict(title="COP"),
         )
+
         st.plotly_chart(
             fig_resource,
             use_container_width=True,
@@ -1964,30 +2408,16 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
 
         fin_resource_show = fin_resource[
             [
-                fin_resource_col,
-                "Servicios",
-                "Produccion",
-                "Costo",
-                "Margen",
-                "Rentabilidad",
-                "Recaudado",
-                "% Recaudo",
-                "Pagado Terceros",
-                "% Pago Terceros",
+                fin_resource_col, "Servicios", "Produccion", "Costo",
+                "Margen", "Rentabilidad", "Recaudado", "% Recaudo",
+                "Pagado Terceros", "% Pago Terceros"
             ]
         ].copy()
-
         fin_resource_show.columns = [
-            fin_resource_label,
-            "Servicios",
-            "Producción",
-            "Costo del Servicio",
-            "Margen",
-            "Rentabilidad",
-            "Recaudado",
-            "% Recaudo",
-            "Pagado a Terceros",
-            "% Pago Terceros",
+            fin_resource_label, "Servicios", "Producción",
+            "Costo del Servicio", "Margen", "Rentabilidad",
+            "Recaudado", "% Recaudo", "Pagado a Terceros",
+            "% Pago Terceros"
         ]
 
         st.dataframe(
@@ -2009,11 +2439,10 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
             height=480,
         )
 
-
     # =========================================================
-    # 6. PROYECCIÓN ESTADÍSTICA — PRÓXIMO MES
+    # 7. ¿QUÉ ESPERAMOS? · PROYECCIÓN ESTADÍSTICA
     # =========================================================
-    st.markdown("## 6. Proyección estadística — Próximo mes")
+    st.markdown("## 7. ¿Qué esperamos? · Proyección del próximo mes")
     st.caption("Proyección auditable construida con los últimos 6 meses completos. El escenario BASE usa tendencia lineal reciente; CONSERVADOR y OPTIMISTA reflejan la variabilidad histórica observada.")
 
     # ---------------------------------------------------------
@@ -2287,7 +2716,7 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
 
     st.info("La proyección estadística es una estimación basada en comportamiento histórico; no constituye producción, recaudo ni pagos garantizados. El escenario BASE es la referencia central y los escenarios CONSERVADOR/OPTIMISTA expresan el rango derivado de la variabilidad observada.")
 
-    st.markdown("## 7. Descarga ejecutiva")
+    st.markdown("## 8. Detalle y descarga ejecutiva")
     resumen_export = pd.DataFrame([
         ["Servicios", servicios_fin], ["Producción", produccion_fin], ["Recaudado cliente", recaudado_cliente], ["Pendiente por recaudar", pendiente_recaudar], ["% Recaudo", pct_recaudo], ["Costo del Servicio", costo_fin], ["Pagado a terceros", pagado_terceros], ["Pendiente por pagar", pendiente_pagar], ["Por clasificar", por_clasificar], ["% Pago a terceros", pct_pago_terceros], ["Margen", margen_fin], ["Rentabilidad", rent_fin], ["Caja operativa", caja_operativa], ["Brecha pendiente", brecha_pendiente], ["Cobertura de obligaciones con caja", cobertura_obligaciones_caja]
     ], columns=["Indicador","Valor"])
@@ -2322,33 +2751,25 @@ if page_mode == "POSICIÓN FINANCIERA Y PROYECCIONES":
 
 
 # =========================================================
-# CENTRO DE CONTROL · OPERACIÓN PURA
+# CENTRO DE CONTROL · STORYTELLING OPERATIVO
 # =========================================================
 
-# ---------------------------------------------------------
-# Cálculos operativos principales
-# ---------------------------------------------------------
 prod = len(valid)
 
 cumplidos = int(valid["ESTADO OP N"].eq("CUMPLIDO").sum())
 cumpl_oper = int(valid["ESTADO OP N"].eq("CUMPLIDO OPERATIVO").sum())
 en_programacion = int(valid["ESTADO OP N"].eq("EN PROGRAMACION").sum())
 en_transito = int(valid["ESTADO OP N"].eq("EN TRANSITO").sum())
-
-# Regla de negocio confirmada:
-# Pendiente operativo = EN PROGRAMACION + EN TRANSITO.
 pend_oper = en_programacion + en_transito
 
 cierre_final = safe_div(cumplidos, prod)
 
-# ICO histórico/a corte: servicios que tienen F PRECUMP.
 if "F PRECUMP" in valid.columns:
     ico_precump_count = int(valid["F PRECUMP"].notna().sum())
 else:
     ico_precump_count = 0
 ico_precump = safe_div(ico_precump_count, prod)
 
-# Tendencia general de servicios.
 trend = aggregate_period(valid, grain)
 last = trend.iloc[-1]
 prev = trend.iloc[-2] if len(trend) > 1 else None
@@ -2362,28 +2783,31 @@ ultimo_periodo_incompleto = bool(
 
 
 def operational_period_frame(data: pd.DataFrame, period_grain: str) -> pd.DataFrame:
-    """Construye evolución puramente operativa por periodo."""
     x = data.copy()
 
     if period_grain == "Mensual":
         x["PERIODO_ORDEN"] = x["AÑO"] * 100 + x["MES_NUM"]
         x["PERIODO"] = x.apply(
-            lambda r: f"{MONTHS_ES.get(r['MES_NUM'], '')} {int(r['AÑO'])}", axis=1
+            lambda r: f"{MONTHS_ES.get(r['MES_NUM'], '')} {int(r['AÑO'])}",
+            axis=1,
         )
     elif period_grain == "Bimestral":
         x["PERIODO_ORDEN"] = x["AÑO"] * 10 + x["BIMESTRE_NUM"].astype(int)
         x["PERIODO"] = x.apply(
-            lambda r: f"B{int(r['BIMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
+            lambda r: f"B{int(r['BIMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
     elif period_grain == "Trimestral":
         x["PERIODO_ORDEN"] = x["AÑO"] * 10 + x["TRIMESTRE_NUM"].astype(int)
         x["PERIODO"] = x.apply(
-            lambda r: f"T{int(r['TRIMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
+            lambda r: f"T{int(r['TRIMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
     else:
         x["PERIODO_ORDEN"] = x["AÑO"] * 10 + x["SEMESTRE_NUM"].astype(int)
         x["PERIODO"] = x.apply(
-            lambda r: f"S{int(r['SEMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
+            lambda r: f"S{int(r['SEMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
 
     x["_CUMPLIDO"] = x["ESTADO OP N"].eq("CUMPLIDO").astype(int)
@@ -2391,11 +2815,11 @@ def operational_period_frame(data: pd.DataFrame, period_grain: str) -> pd.DataFr
     x["_PROGRAMACION"] = x["ESTADO OP N"].eq("EN PROGRAMACION").astype(int)
     x["_TRANSITO"] = x["ESTADO OP N"].eq("EN TRANSITO").astype(int)
     x["_PENDIENTE"] = x["_PROGRAMACION"] + x["_TRANSITO"]
-
-    if "F PRECUMP" in x.columns:
-        x["_ICO"] = x["F PRECUMP"].notna().astype(int)
-    else:
-        x["_ICO"] = 0
+    x["_ICO"] = (
+        x["F PRECUMP"].notna().astype(int)
+        if "F PRECUMP" in x.columns
+        else 0
+    )
 
     g = (
         x.groupby(["PERIODO_ORDEN", "PERIODO"], dropna=False)
@@ -2427,8 +2851,710 @@ def operational_period_frame(data: pd.DataFrame, period_grain: str) -> pd.DataFr
 op_period = operational_period_frame(valid, grain)
 
 
-def build_status_table(data: pd.DataFrame, group_col: str, group_label: str) -> pd.DataFrame:
-    """Tabla de estatus con la dimensión visible como primera columna."""
+def performance_by_group(data: pd.DataFrame, group_col: str) -> pd.DataFrame:
+    x = data.copy()
+    x["_CUMPLIDO"] = x["ESTADO OP N"].eq("CUMPLIDO").astype(int)
+    x["_CUMPLIDO_OPER"] = x["ESTADO OP N"].eq("CUMPLIDO OPERATIVO").astype(int)
+    x["_PENDIENTE"] = x["ESTADO OP N"].isin(
+        ["EN PROGRAMACION", "EN TRANSITO"]
+    ).astype(int)
+
+    g = (
+        x.groupby(group_col, dropna=False)
+        .agg(
+            Servicios=("CLIENTE", "size"),
+            Cumplidos=("_CUMPLIDO", "sum"),
+            Cumplido_Operativo=("_CUMPLIDO_OPER", "sum"),
+            Pendientes=("_PENDIENTE", "sum"),
+        )
+        .reset_index()
+    )
+
+    g["Cierre %"] = np.where(
+        g["Servicios"].ne(0),
+        g["Cumplidos"] / g["Servicios"],
+        np.nan,
+    )
+    g["Pendientes %"] = np.where(
+        g["Servicios"].ne(0),
+        g["Pendientes"] / g["Servicios"],
+        np.nan,
+    )
+    g["Cumplido Operativo %"] = np.where(
+        g["Servicios"].ne(0),
+        g["Cumplido_Operativo"] / g["Servicios"],
+        np.nan,
+    )
+    return g
+
+
+client_perf = performance_by_group(valid, "CLIENTE")
+coord_perf = performance_by_group(valid, "Quien Creó")
+
+
+# ---------------------------------------------------------
+# Mensaje ejecutivo automático
+# ---------------------------------------------------------
+top_pending_client_row = (
+    client_perf.sort_values(
+        ["Pendientes", "Servicios"],
+        ascending=[False, False],
+    ).iloc[0]
+    if not client_perf.empty
+    else None
+)
+
+top_pending_coord_row = (
+    coord_perf.sort_values(
+        ["Pendientes", "Servicios"],
+        ascending=[False, False],
+    ).iloc[0]
+    if not coord_perf.empty
+    else None
+)
+
+client_focus_name = (
+    str(top_pending_client_row["CLIENTE"])
+    if top_pending_client_row is not None
+    else "Sin dato"
+)
+client_focus_pending = (
+    int(top_pending_client_row["Pendientes"])
+    if top_pending_client_row is not None
+    else 0
+)
+
+op_story_text = (
+    f"Se registran {fmt_int(prod)} servicios válidos, con cierre final de "
+    f"{fmt_pct(cierre_final)}. Los pendientes operativos son {fmt_int(pend_oper)} "
+    f"({fmt_pct(safe_div(pend_oper, prod))}) y el ICO a corte es "
+    f"{fmt_pct(ico_precump)}. La mayor concentración de pendientes está en "
+    f"{client_focus_name} con {fmt_int(client_focus_pending)} servicios."
+)
+
+st.markdown(
+    f"""
+    <div class="story-banner">
+        <div class="eyebrow">Lectura ejecutiva del periodo</div>
+        <div class="story-text">{op_story_text}</div>
+    </div>
+    <div class="story-path">
+        <span class="node">Qué pasó</span><span class="arrow">→</span>
+        <span class="node">Cómo cerramos</span><span class="arrow">→</span>
+        <span class="node">Dónde está el problema</span><span class="arrow">→</span>
+        <span class="node">Quién lo explica</span><span class="arrow">→</span>
+        <span class="node">Dónde actuar</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# =========================================================
+# 1. ¿CÓMO ESTAMOS?
+# =========================================================
+st.markdown("## 1. ¿Cómo estamos? · Resumen operativo")
+st.caption(
+    "Cuatro indicadores para entender el estado general antes de entrar al detalle."
+)
+
+k1, k2, k3, k4 = st.columns(4)
+
+with k1:
+    kpi_card(
+        "Total Servicios",
+        fmt_int(prod),
+        d_servicios,
+        True,
+        "Servicios válidos · excluye ANULADO",
+    )
+with k2:
+    kpi_card(
+        "Cierre Final",
+        fmt_pct(cierre_final),
+        note="CUMPLIDO / Servicios válidos",
+        show_delta=False,
+    )
+with k3:
+    kpi_card(
+        "Pendientes Operativos",
+        fmt_int(pend_oper),
+        note=f"{fmt_pct(safe_div(pend_oper, prod))} · Programación + Tránsito",
+        show_delta=False,
+    )
+with k4:
+    kpi_card(
+        "ICO a Corte",
+        fmt_pct(ico_precump),
+        note="F PRECUMP / Servicios válidos",
+        show_delta=False,
+    )
+
+if ultimo_periodo_incompleto:
+    st.info(
+        "📌 El último periodo está en curso. La variación de servicios no se compara "
+        "contra un periodo completo hasta el cierre."
+    )
+
+
+# =========================================================
+# 2. PRIMERA DIAGONAL · ¿QUÉ PASÓ? / ¿CÓMO CERRAMOS?
+# =========================================================
+st.markdown("## 2. ¿Qué pasó y cómo cerramos?")
+st.caption(
+    "La lectura empieza por el volumen y continúa hacia la calidad del cierre."
+)
+
+z1, z2 = st.columns([1.08, 0.92], gap="large")
+
+with z1:
+    st.markdown('<div class="question-tag">¿Qué pasó?</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">SERVICIOS POR PERIODO + VARIACIÓN</div>',
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(
+        trend_chart(
+            trend,
+            "Servicios",
+            "Var_Servicios",
+            "Servicios",
+            money=False,
+        ),
+        use_container_width=True,
+        key="story_services_period",
+    )
+
+with z2:
+    st.markdown('<div class="question-tag">¿Cómo cerramos?</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">CIERRE · ICO · PENDIENTES POR PERIODO</div>',
+        unsafe_allow_html=True,
+    )
+
+    fig_close = go.Figure()
+    for col, name, color in [
+        ("Cierre Final %", "Cierre Final %", GREEN),
+        ("ICO a Corte %", "ICO a Corte %", SECONDARY_BLUE),
+        ("Pendientes %", "Pendientes %", AMBER),
+    ]:
+        fig_close.add_trace(
+            go.Scatter(
+                x=op_period["PERIODO"],
+                y=op_period[col] * 100,
+                mode="lines+markers",
+                name=name,
+                line=dict(color=color, width=3),
+                marker=dict(size=8),
+                hovertemplate=f"%{{x}}<br>{name}: %{{y:.2f}}%<extra></extra>",
+            )
+        )
+
+    fig_close.update_layout(
+        height=360,
+        margin=dict(l=20, r=20, t=70, b=35),
+        legend=dict(
+            orientation="h",
+            y=1.16,
+            x=0,
+            font=dict(color="#F8FAFC", size=12),
+        ),
+        yaxis=dict(title="%", ticksuffix="%", rangemode="tozero"),
+        hovermode="x unified",
+    )
+    st.plotly_chart(
+        fig_close,
+        use_container_width=True,
+        key="story_closure_period",
+    )
+
+
+# =========================================================
+# 3. SEGUNDA DIAGONAL · ¿DÓNDE ESTÁ EL PROBLEMA?
+# =========================================================
+st.markdown("## 3. ¿Dónde está el problema?")
+st.caption(
+    "Primero se identifica la composición del estado; después se localiza la concentración por cliente."
+)
+
+p1, p2 = st.columns([0.88, 1.12], gap="large")
+
+with p1:
+    st.markdown('<div class="question-tag">Composición general</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">ESTADO OPERATIVO</div>',
+        unsafe_allow_html=True,
+    )
+
+    state_summary = pd.DataFrame(
+        {
+            "Estado": [
+                "CUMPLIDO",
+                "CUMPLIDO OPERATIVO",
+                "EN PROGRAMACION",
+                "EN TRANSITO",
+            ],
+            "Servicios": [
+                cumplidos,
+                cumpl_oper,
+                en_programacion,
+                en_transito,
+            ],
+        }
+    )
+    state_summary["Participación %"] = np.where(
+        prod != 0,
+        state_summary["Servicios"] / prod,
+        np.nan,
+    )
+
+    fig_state = go.Figure(
+        go.Bar(
+            x=state_summary["Servicios"],
+            y=state_summary["Estado"],
+            orientation="h",
+            marker_color=[
+                GREEN,
+                SECONDARY_BLUE,
+                AMBER,
+                ORANGE,
+            ],
+            text=state_summary["Servicios"].map(fmt_int),
+            textposition="outside",
+            hovertemplate="<b>%{y}</b><br>Servicios: %{x:,}<extra></extra>",
+        )
+    )
+    fig_state.update_layout(
+        height=360,
+        margin=dict(l=10, r=60, t=25, b=25),
+        yaxis=dict(autorange="reversed"),
+        xaxis=dict(title="Servicios"),
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig_state,
+        use_container_width=True,
+        key="story_state_general",
+    )
+
+with p2:
+    st.markdown('<div class="question-tag">Concentración por cliente</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">CLIENTES CON MAYOR PENDIENTE OPERATIVO</div>',
+        unsafe_allow_html=True,
+    )
+
+    pending_clients = (
+        client_perf.sort_values(
+            ["Pendientes", "Servicios"],
+            ascending=[False, False],
+        )
+        .head(10)
+        .rename(columns={"CLIENTE": "Cliente"})
+    )
+
+    st.dataframe(
+        pending_clients[
+            [
+                "Cliente", "Servicios", "Pendientes",
+                "Pendientes %", "Cierre %"
+            ]
+        ].style.format(
+            {
+                "Servicios": "{:,.0f}",
+                "Pendientes": "{:,.0f}",
+                "Pendientes %": "{:.2%}",
+                "Cierre %": "{:.2%}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=360,
+    )
+
+
+# =========================================================
+# 4. TERCERA DIAGONAL · ¿QUIÉN LO EXPLICA?
+# =========================================================
+st.markdown("## 4. ¿Quién explica el resultado?")
+st.caption(
+    "Se contrasta la concentración externa por cliente con la gestión interna de quien creó."
+)
+
+q1, q2 = st.columns([1.05, 0.95], gap="large")
+
+with q1:
+    st.markdown('<div class="question-tag">Cliente</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">DESEMPEÑO OPERATIVO POR CLIENTE</div>',
+        unsafe_allow_html=True,
+    )
+
+    client_explain = (
+        client_perf.sort_values(
+            ["Servicios", "Pendientes"],
+            ascending=[False, False],
+        )
+        .head(12)
+        .rename(columns={"CLIENTE": "Cliente"})
+    )
+
+    st.dataframe(
+        client_explain[
+            [
+                "Cliente", "Servicios", "Cumplidos",
+                "Cumplido_Operativo", "Pendientes",
+                "Cierre %", "Pendientes %"
+            ]
+        ].style.format(
+            {
+                "Servicios": "{:,.0f}",
+                "Cumplidos": "{:,.0f}",
+                "Cumplido_Operativo": "{:,.0f}",
+                "Pendientes": "{:,.0f}",
+                "Cierre %": "{:.2%}",
+                "Pendientes %": "{:.2%}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=430,
+    )
+
+with q2:
+    st.markdown('<div class="question-tag">Gestión interna</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">DESEMPEÑO POR QUIÉN CREÓ</div>',
+        unsafe_allow_html=True,
+    )
+
+    coord_explain = (
+        coord_perf.sort_values(
+            ["Servicios", "Pendientes"],
+            ascending=[False, False],
+        )
+        .head(12)
+        .rename(columns={"Quien Creó": "Quién creó"})
+    )
+
+    st.dataframe(
+        coord_explain[
+            [
+                "Quién creó", "Servicios", "Cumplidos",
+                "Cumplido_Operativo", "Pendientes",
+                "Cierre %", "Pendientes %"
+            ]
+        ].style.format(
+            {
+                "Servicios": "{:,.0f}",
+                "Cumplidos": "{:,.0f}",
+                "Cumplido_Operativo": "{:,.0f}",
+                "Pendientes": "{:,.0f}",
+                "Cierre %": "{:.2%}",
+                "Pendientes %": "{:.2%}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=430,
+    )
+
+
+# =========================================================
+# 5. ¿CON QUÉ RECURSOS OPERAMOS?
+# =========================================================
+st.markdown("## 5. ¿Con qué recursos estamos operando?")
+st.caption(
+    "La lectura de recursos se mantiene operacional: volumen y utilización, sin mezclar valores financieros."
+)
+
+res1, res2 = st.columns([0.8, 1.2], gap="large")
+
+with res1:
+    st.markdown(
+        '<div class="section-title">FLOTA PROPIA VS TERCEROS · SERVICIOS</div>',
+        unsafe_allow_html=True,
+    )
+
+    fleet_count = (
+        valid["Tipo Flota"]
+        .value_counts(dropna=False)
+        .rename_axis("Tipo Flota")
+        .reset_index(name="Servicios")
+    )
+
+    fig_fleet = go.Figure(
+        go.Pie(
+            labels=fleet_count["Tipo Flota"],
+            values=fleet_count["Servicios"],
+            hole=.62,
+            textinfo="percent",
+            marker=dict(
+                colors=[ROYAL_BLUE, SECONDARY_BLUE, "#64748B"]
+            ),
+            hovertemplate="%{label}<br>%{value:,} servicios<br>%{percent}<extra></extra>",
+        )
+    )
+    fig_fleet.update_layout(
+        height=350,
+        margin=dict(l=5, r=5, t=25, b=45),
+        legend=dict(
+            orientation="h",
+            y=-0.07,
+            x=0,
+            font=dict(color="#F8FAFC", size=11),
+        ),
+    )
+    st.plotly_chart(
+        fig_fleet,
+        use_container_width=True,
+        key="story_fleet_mix",
+    )
+
+with res2:
+    st.markdown(
+        '<div class="section-title">SERVICIOS POR TIPOLOGÍA</div>',
+        unsafe_allow_html=True,
+    )
+
+    typology = (
+        valid.groupby("TIPOLOGIA", dropna=False)
+        .size()
+        .rename("Servicios")
+        .reset_index()
+        .sort_values("Servicios", ascending=False)
+        .head(12)
+    )
+
+    fig_typology = go.Figure(
+        go.Bar(
+            x=typology["Servicios"],
+            y=typology["TIPOLOGIA"],
+            orientation="h",
+            marker_color=SECONDARY_BLUE,
+            text=typology["Servicios"].map(fmt_int),
+            textposition="outside",
+        )
+    )
+    fig_typology.update_layout(
+        height=350,
+        margin=dict(l=10, r=55, t=25, b=25),
+        yaxis=dict(autorange="reversed"),
+        xaxis=dict(title="Servicios"),
+    )
+    st.plotly_chart(
+        fig_typology,
+        use_container_width=True,
+        key="story_typology",
+    )
+
+plate_ops = (
+    valid.groupby("PLACA", dropna=False)
+    .agg(
+        Servicios=("CLIENTE", "size"),
+        Clientes=("CLIENTE", "nunique"),
+    )
+    .reset_index()
+    .sort_values(["Servicios", "Clientes"], ascending=[False, False])
+    .head(15)
+)
+plate_ops.columns = ["Placa", "Servicios", "Clientes atendidos"]
+
+driver_ops = (
+    valid.groupby("CONDUCTOR_NOMBRE", dropna=False)
+    .agg(
+        Servicios=("CLIENTE", "size"),
+        Clientes=("CLIENTE", "nunique"),
+    )
+    .reset_index()
+    .sort_values(["Servicios", "Clientes"], ascending=[False, False])
+    .head(15)
+)
+driver_ops.columns = ["Conductor", "Servicios", "Clientes atendidos"]
+
+res3, res4 = st.columns(2, gap="large")
+
+with res3:
+    st.markdown(
+        '<div class="section-title">TOP PLACAS POR SERVICIOS</div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(
+        plate_ops.style.format(
+            {
+                "Servicios": "{:,.0f}",
+                "Clientes atendidos": "{:,.0f}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=390,
+    )
+
+with res4:
+    st.markdown(
+        '<div class="section-title">TOP CONDUCTORES POR SERVICIOS</div>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(
+        driver_ops.style.format(
+            {
+                "Servicios": "{:,.0f}",
+                "Clientes atendidos": "{:,.0f}",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=390,
+    )
+
+
+# =========================================================
+# 6. CIERRE DE LA HISTORIA · FOCOS DE ATENCIÓN
+# =========================================================
+st.markdown("## 6. ¿Dónde debemos actuar? · Focos de atención")
+st.caption(
+    "El dashboard termina priorizando los puntos que requieren revisión, en lugar de dejar al usuario buscando entre tablas."
+)
+
+# Cliente con más pendientes.
+if not client_perf.empty:
+    fc_client = (
+        client_perf.sort_values(
+            ["Pendientes", "Servicios"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
+    focus_client_name = str(fc_client["CLIENTE"])
+    focus_client_value = fmt_int(fc_client["Pendientes"])
+    focus_client_note = f"{fmt_pct(fc_client['Pendientes %'])} de sus servicios"
+else:
+    focus_client_name = "Sin dato"
+    focus_client_value = "0"
+    focus_client_note = "Sin registros"
+
+# Coordinador con menor cierre entre quienes tienen volumen material.
+min_volume = max(10, int(prod * 0.003))
+coord_material = coord_perf.loc[
+    coord_perf["Servicios"] >= min_volume
+].copy()
+if coord_material.empty:
+    coord_material = coord_perf.copy()
+
+if not coord_material.empty:
+    fc_coord = (
+        coord_material.sort_values(
+            ["Cierre %", "Servicios"],
+            ascending=[True, False],
+        )
+        .iloc[0]
+    )
+    focus_coord_name = str(fc_coord["Quien Creó"])
+    focus_coord_value = fmt_pct(fc_coord["Cierre %"])
+    focus_coord_note = f"{fmt_int(fc_coord['Servicios'])} servicios"
+else:
+    focus_coord_name = "Sin dato"
+    focus_coord_value = "—"
+    focus_coord_note = "Sin registros"
+
+# Cliente con mayor volumen en Cumplido Operativo.
+if not client_perf.empty:
+    fc_legal = (
+        client_perf.sort_values(
+            ["Cumplido_Operativo", "Servicios"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
+    focus_legal_name = str(fc_legal["CLIENTE"])
+    focus_legal_value = fmt_int(fc_legal["Cumplido_Operativo"])
+    focus_legal_note = "servicios en legalización"
+else:
+    focus_legal_name = "Sin dato"
+    focus_legal_value = "0"
+    focus_legal_note = "Sin registros"
+
+# Placa de mayor utilización.
+if not plate_ops.empty:
+    fc_plate = plate_ops.iloc[0]
+    focus_plate_name = str(fc_plate["Placa"])
+    focus_plate_value = fmt_int(fc_plate["Servicios"])
+    focus_plate_note = f"{fmt_int(fc_plate['Clientes atendidos'])} clientes atendidos"
+else:
+    focus_plate_name = "Sin dato"
+    focus_plate_value = "0"
+    focus_plate_note = "Sin registros"
+
+# Peor cierre por periodo: excluir el periodo en curso si está incompleto.
+period_eval = op_period.copy()
+if ultimo_periodo_incompleto and len(period_eval) > 1:
+    period_eval = period_eval.iloc[:-1].copy()
+
+if not period_eval.empty:
+    fc_period = (
+        period_eval.sort_values(
+            ["Cierre Final %", "Servicios"],
+            ascending=[True, False],
+        )
+        .iloc[0]
+    )
+    focus_period_name = str(fc_period["PERIODO"])
+    focus_period_value = fmt_pct(fc_period["Cierre Final %"])
+    focus_period_note = f"{fmt_int(fc_period['Servicios'])} servicios"
+else:
+    focus_period_name = "Sin dato"
+    focus_period_value = "—"
+    focus_period_note = "Sin periodo comparable"
+
+st.markdown(
+    f"""
+    <div class="focus-grid">
+        <div class="focus-card">
+            <div class="label">Mayor concentración de pendientes</div>
+            <div class="value">{focus_client_name}</div>
+            <div class="note">{focus_client_value} pendientes · {focus_client_note}</div>
+        </div>
+        <div class="focus-card">
+            <div class="label">Menor cierre con volumen material</div>
+            <div class="value">{focus_coord_name}</div>
+            <div class="note">{focus_coord_value} cierre · {focus_coord_note}</div>
+        </div>
+        <div class="focus-card">
+            <div class="label">Mayor carga en legalización</div>
+            <div class="value">{focus_legal_name}</div>
+            <div class="note">{focus_legal_value} {focus_legal_note}</div>
+        </div>
+        <div class="focus-card">
+            <div class="label">Placa con mayor utilización</div>
+            <div class="value">{focus_plate_name}</div>
+            <div class="note">{focus_plate_value} servicios · {focus_plate_note}</div>
+        </div>
+        <div class="focus-card">
+            <div class="label">Periodo con menor cierre</div>
+            <div class="value">{focus_period_name}</div>
+            <div class="note">{focus_period_value} · {focus_period_note}</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# =========================================================
+# 7. DETALLE PARA GESTIÓN
+# =========================================================
+st.markdown("## 7. Detalle para gestión")
+st.caption(
+    "Las tablas extensas quedan al final: sirven para profundizar después de entender la historia principal."
+)
+
+
+def build_status_table(
+    data: pd.DataFrame,
+    group_col: str,
+    group_label: str,
+) -> pd.DataFrame:
     x = valid_services(data).copy()
 
     states = [
@@ -2491,7 +3617,6 @@ def build_status_table(data: pd.DataFrame, group_col: str, group_label: str) -> 
         ascending=[False, False],
     )
 
-    # TOTAL general al final.
     total_counts = out[
         [
             "CUMPLIDO",
@@ -2506,6 +3631,9 @@ def build_status_table(data: pd.DataFrame, group_col: str, group_label: str) -> 
 
     total_general = total_counts["Total general"]
 
+    # Convertir índice en columna visible: corrige QUIÉN CREÓ / CLIENTE.
+    out = out.reset_index().rename(columns={group_col: group_label})
+
     total_row = pd.DataFrame(
         [
             {
@@ -2517,693 +3645,265 @@ def build_status_table(data: pd.DataFrame, group_col: str, group_label: str) -> 
                 "OTROS": total_counts["OTROS"],
                 "Total general": total_general,
                 "Pendientes operativos": total_counts["Pendientes operativos"],
-                "% Cumplido": safe_div(total_counts["CUMPLIDO"], total_general),
+                "% Cumplido": safe_div(
+                    total_counts["CUMPLIDO"],
+                    total_general,
+                ),
                 "% Cumplido Operativo": safe_div(
-                    total_counts["CUMPLIDO OPERATIVO"], total_general
+                    total_counts["CUMPLIDO OPERATIVO"],
+                    total_general,
                 ),
                 "Pendientes %": safe_div(
-                    total_counts["Pendientes operativos"], total_general
+                    total_counts["Pendientes operativos"],
+                    total_general,
                 ),
             }
         ]
     )
 
-    # CRÍTICO: reset_index hace visible QUIÉN CREÓ / CLIENTE.
-    out = out.reset_index().rename(columns={group_col: group_label})
-    out = pd.concat([out, total_row], ignore_index=True)
-
-    return out
+    return pd.concat([out, total_row], ignore_index=True)
 
 
-# =========================================================
-# 1. RESUMEN OPERATIVO
-# =========================================================
-st.markdown("## 1. Resumen operativo")
-st.caption(
-    "Lectura exclusivamente operacional: volumen, cierre, legalización y pendientes. "
-    "Los indicadores económicos y de recaudo se consultan en Posición Financiera y Proyecciones."
-)
-
-r1, r2, r3, r4 = st.columns(4)
-with r1:
-    kpi_card(
-        "Total Servicios",
-        fmt_int(prod),
-        d_servicios,
-        True,
-        "Servicios válidos · excluye ANULADO",
-    )
-with r2:
-    kpi_card(
-        "Cumplido",
-        fmt_int(cumplidos),
-        note="Cierre final / OC OK",
-        show_delta=False,
-    )
-with r3:
-    kpi_card(
-        "Cumplido Operativo",
-        fmt_int(cumpl_oper),
-        note="Servicio prestado · en legalización",
-        show_delta=False,
-    )
-with r4:
-    kpi_card(
-        "Pendientes Operativos",
-        fmt_int(pend_oper),
-        note="En Programación + En Tránsito",
-        show_delta=False,
+with st.expander("📋 Estatus detallado por Quién creó / Cliente", expanded=False):
+    status_mode = st.radio(
+        "Ver tabla de estatus por",
+        ["QUIÉN CREÓ", "CLIENTE"],
+        horizontal=True,
+        key="story_status_tracking_mode",
     )
 
-r5, r6, r7, r8 = st.columns(4)
-with r5:
-    kpi_card(
-        "En Programación",
-        fmt_int(en_programacion),
-        note="Pendiente operativo",
-        show_delta=False,
-    )
-with r6:
-    kpi_card(
-        "En Tránsito",
-        fmt_int(en_transito),
-        note="Pendiente operativo",
-        show_delta=False,
-    )
-with r7:
-    kpi_card(
-        "Cierre Final",
-        fmt_pct(cierre_final),
-        note="CUMPLIDO / Servicios válidos",
-        show_delta=False,
-    )
-with r8:
-    kpi_card(
-        "ICO a Corte",
-        fmt_pct(ico_precump),
-        note="F PRECUMP / Servicios válidos",
-        show_delta=False,
-    )
+    if status_mode == "QUIÉN CREÓ":
+        status_tbl = build_status_table(
+            valid,
+            "Quien Creó",
+            "Quién creó",
+        )
+    else:
+        status_tbl = build_status_table(
+            valid,
+            "CLIENTE",
+            "Cliente",
+        )
 
-if ultimo_periodo_incompleto:
-    st.info(
-        "📌 El último periodo está en curso. Su variación de servicios no se compara "
-        "contra un periodo completo hasta el cierre."
-    )
-
-
-# =========================================================
-# 2. EVOLUCIÓN OPERATIVA
-# =========================================================
-st.markdown("## 2. Evolución operativa")
-st.caption(
-    "Comportamiento del volumen de servicios y de los principales indicadores de cierre por periodo."
-)
-
-ev1, ev2 = st.columns(2, gap="large")
-
-with ev1:
     st.markdown(
-        '<div class="section-title">SERVICIOS POR PERIODO</div>',
+        f'<div class="section-title">ESTATUS OPERATIVO POR {status_mode}</div>',
         unsafe_allow_html=True,
     )
-    st.plotly_chart(
-        trend_chart(
-            trend,
-            "Servicios",
-            "Var_Servicios",
-            "Servicios",
-            money=False,
-        ),
-        use_container_width=True,
-        key="op_services_period",
-    )
-
-with ev2:
-    st.markdown(
-        '<div class="section-title">CIERRE Y PENDIENTES POR PERIODO</div>',
-        unsafe_allow_html=True,
-    )
-
-    fig_op_period = go.Figure()
-    fig_op_period.add_trace(
-        go.Scatter(
-            x=op_period["PERIODO"],
-            y=op_period["Cierre Final %"] * 100,
-            mode="lines+markers",
-            name="Cierre Final %",
-            line=dict(color=GREEN, width=3),
-            marker=dict(size=8),
-            hovertemplate="%{x}<br>Cierre Final: %{y:.2f}%<extra></extra>",
-        )
-    )
-    fig_op_period.add_trace(
-        go.Scatter(
-            x=op_period["PERIODO"],
-            y=op_period["ICO a Corte %"] * 100,
-            mode="lines+markers",
-            name="ICO a Corte %",
-            line=dict(color=SECONDARY_BLUE, width=3),
-            marker=dict(size=8),
-            hovertemplate="%{x}<br>ICO: %{y:.2f}%<extra></extra>",
-        )
-    )
-    fig_op_period.add_trace(
-        go.Scatter(
-            x=op_period["PERIODO"],
-            y=op_period["Pendientes %"] * 100,
-            mode="lines+markers",
-            name="Pendientes %",
-            line=dict(color=AMBER, width=3),
-            marker=dict(size=8),
-            hovertemplate="%{x}<br>Pendientes: %{y:.2f}%<extra></extra>",
-        )
-    )
-    fig_op_period.update_layout(
-        height=360,
-        margin=dict(l=20, r=20, t=70, b=35),
-        legend=dict(
-            orientation="h",
-            y=1.16,
-            x=0,
-            font=dict(color="#F8FAFC", size=12),
-        ),
-        yaxis=dict(title="%", ticksuffix="%", rangemode="tozero"),
-        xaxis=dict(title=""),
-        hovermode="x unified",
-    )
-    st.plotly_chart(
-        fig_op_period,
-        use_container_width=True,
-        key="op_closure_pending_period",
-    )
-
-
-# =========================================================
-# 3. CLIENTES · VOLUMEN Y COMPORTAMIENTO
-# =========================================================
-st.markdown("## 3. Clientes")
-st.caption(
-    "El Centro de Control muestra volumen y estatus por cliente. "
-    "Producción, margen, rentabilidad y recaudo se revisan en el dashboard financiero."
-)
-
-client_volume = (
-    valid.groupby("CLIENTE", dropna=False)
-    .agg(Servicios=("CLIENTE", "size"))
-    .reset_index()
-    .sort_values("Servicios", ascending=False)
-)
-client_volume["Participación %"] = np.where(
-    prod != 0,
-    client_volume["Servicios"] / prod,
-    np.nan,
-)
-
-top_client_volume = client_volume.head(12).copy()
-
-cl1, cl2 = st.columns([0.9, 1.1], gap="large")
-
-with cl1:
-    st.markdown(
-        '<div class="section-title">TOP CLIENTES POR SERVICIOS</div>',
-        unsafe_allow_html=True,
-    )
-
-    fig_client_services = go.Figure(
-        go.Bar(
-            x=top_client_volume["Servicios"],
-            y=top_client_volume["CLIENTE"],
-            orientation="h",
-            marker_color=ROYAL_BLUE,
-            text=top_client_volume["Servicios"].map(fmt_int),
-            textposition="outside",
-            hovertemplate="<b>%{y}</b><br>Servicios: %{x:,}<extra></extra>",
-        )
-    )
-    fig_client_services.update_layout(
-        height=430,
-        margin=dict(l=10, r=55, t=20, b=25),
-        yaxis=dict(autorange="reversed"),
-        xaxis=dict(title="Servicios"),
-    )
-    st.plotly_chart(
-        fig_client_services,
-        use_container_width=True,
-        key="op_top_clients_services",
-    )
-
-with cl2:
-    st.markdown(
-        '<div class="section-title">PARTICIPACIÓN DE SERVICIOS POR CLIENTE</div>',
-        unsafe_allow_html=True,
-    )
-
-    client_show = top_client_volume.rename(
-        columns={"CLIENTE": "Cliente"}
-    )[["Cliente", "Servicios", "Participación %"]]
 
     st.dataframe(
-        client_show.style.format(
+        status_tbl.style.format(
             {
-                "Servicios": "{:,.0f}",
-                "Participación %": "{:.2%}",
+                "CUMPLIDO": "{:,.0f}",
+                "CUMPLIDO OPERATIVO": "{:,.0f}",
+                "EN PROGRAMACION": "{:,.0f}",
+                "EN TRANSITO": "{:,.0f}",
+                "OTROS": "{:,.0f}",
+                "Total general": "{:,.0f}",
+                "Pendientes operativos": "{:,.0f}",
+                "% Cumplido": "{:.2%}",
+                "% Cumplido Operativo": "{:.2%}",
+                "Pendientes %": "{:.2%}",
             }
         ),
         use_container_width=True,
         hide_index=True,
-        height=430,
+        height=540,
     )
 
-# Estado por los principales clientes.
-top_client_names = top_client_volume["CLIENTE"].astype(str).tolist()
-client_state = (
-    valid.loc[valid["CLIENTE"].astype(str).isin(top_client_names)]
-    .groupby(["CLIENTE", "ESTADO OP N"], dropna=False)
-    .size()
-    .unstack(fill_value=0)
+# Garantizar status_tbl para descarga, aunque el expander no se abra.
+status_tbl = build_status_table(
+    valid,
+    "Quien Creó",
+    "Quién creó",
 )
 
-for _state in [
-    "CUMPLIDO",
-    "CUMPLIDO OPERATIVO",
-    "EN PROGRAMACION",
-    "EN TRANSITO",
-]:
-    if _state not in client_state.columns:
-        client_state[_state] = 0
+with st.expander("🧭 Matriz Cliente × Periodo", expanded=False):
+    matrix_metric = st.radio(
+        "Indicador de la matriz",
+        [
+            "Servicios",
+            "Cierre Final %",
+            "Cumplido Operativo %",
+            "Pendientes %",
+        ],
+        horizontal=True,
+        key="story_matrix_metric",
+    )
 
-client_state = client_state.reindex(top_client_names).fillna(0)
+    m = valid.copy()
 
-st.markdown(
-    '<div class="section-title">ESTADO OPERATIVO · PRINCIPALES CLIENTES</div>',
-    unsafe_allow_html=True,
-)
-
-fig_client_state = go.Figure()
-for _state, _color in [
-    ("CUMPLIDO", GREEN),
-    ("CUMPLIDO OPERATIVO", SECONDARY_BLUE),
-    ("EN PROGRAMACION", AMBER),
-    ("EN TRANSITO", ORANGE),
-]:
-    fig_client_state.add_trace(
-        go.Bar(
-            x=client_state.index,
-            y=client_state[_state],
-            name=_state,
-            marker_color=_color,
-            hovertemplate="<b>%{x}</b><br>" + _state + ": %{y:,}<extra></extra>",
+    if grain == "Mensual":
+        m["P_ORD"] = m["AÑO"] * 100 + m["MES_NUM"]
+        m["P_LABEL"] = m.apply(
+            lambda r: f"{MONTHS_ES.get(r['MES_NUM'], '')} {int(r['AÑO'])}",
+            axis=1,
         )
-    )
-
-fig_client_state.update_layout(
-    barmode="stack",
-    height=420,
-    margin=dict(l=20, r=20, t=70, b=130),
-    legend=dict(
-        orientation="h",
-        y=1.16,
-        x=0,
-        font=dict(color="#F8FAFC", size=12),
-    ),
-    xaxis=dict(tickangle=-35),
-    yaxis=dict(title="Servicios"),
-)
-st.plotly_chart(
-    fig_client_state,
-    use_container_width=True,
-    key="op_client_state_stack",
-)
-
-
-# =========================================================
-# 4. RECURSOS Y PRODUCTIVIDAD
-# =========================================================
-st.markdown("## 4. Recursos y productividad")
-st.caption(
-    "Lectura operacional de coordinadores, tipologías, flota, placas y conductores. "
-    "Los valores económicos por recurso fueron trasladados al módulo financiero."
-)
-
-rr1, rr2 = st.columns(2, gap="large")
-
-with rr1:
-    st.markdown(
-        '<div class="section-title">SERVICIOS POR COORDINADOR</div>',
-        unsafe_allow_html=True,
-    )
-    coord = (
-        valid.groupby("Quien Creó", dropna=False)
-        .size()
-        .rename("Servicios")
-        .reset_index()
-        .sort_values("Servicios", ascending=False)
-        .head(15)
-    )
-    fig_coord = go.Figure(
-        go.Bar(
-            x=coord["Servicios"],
-            y=coord["Quien Creó"],
-            orientation="h",
-            marker_color=ROYAL_BLUE,
-            text=coord["Servicios"].map(fmt_int),
-            textposition="outside",
+    elif grain == "Bimestral":
+        m["P_ORD"] = m["AÑO"] * 10 + m["BIMESTRE_NUM"].astype(int)
+        m["P_LABEL"] = m.apply(
+            lambda r: f"B{int(r['BIMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
-    )
-    fig_coord.update_layout(
-        height=430,
-        margin=dict(l=10, r=55, t=20, b=20),
-        yaxis=dict(autorange="reversed"),
-        xaxis=dict(title="Servicios"),
-    )
-    st.plotly_chart(
-        fig_coord,
-        use_container_width=True,
-        key="op_services_coordinator",
-    )
-
-with rr2:
-    st.markdown(
-        '<div class="section-title">SERVICIOS POR TIPOLOGÍA</div>',
-        unsafe_allow_html=True,
-    )
-    typology = (
-        valid.groupby("TIPOLOGIA", dropna=False)
-        .size()
-        .rename("Servicios")
-        .reset_index()
-        .sort_values("Servicios", ascending=False)
-        .head(15)
-    )
-    fig_typology = go.Figure(
-        go.Bar(
-            x=typology["Servicios"],
-            y=typology["TIPOLOGIA"],
-            orientation="h",
-            marker_color=SECONDARY_BLUE,
-            text=typology["Servicios"].map(fmt_int),
-            textposition="outside",
+    elif grain == "Trimestral":
+        m["P_ORD"] = m["AÑO"] * 10 + m["TRIMESTRE_NUM"].astype(int)
+        m["P_LABEL"] = m.apply(
+            lambda r: f"T{int(r['TRIMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
-    )
-    fig_typology.update_layout(
-        height=430,
-        margin=dict(l=10, r=55, t=20, b=20),
-        yaxis=dict(autorange="reversed"),
-        xaxis=dict(title="Servicios"),
-    )
-    st.plotly_chart(
-        fig_typology,
-        use_container_width=True,
-        key="op_services_typology",
-    )
-
-rr3, rr4, rr5 = st.columns([0.8, 1.1, 1.1], gap="large")
-
-with rr3:
-    st.markdown(
-        '<div class="section-title">FLOTA PROPIA VS TERCEROS</div>',
-        unsafe_allow_html=True,
-    )
-    fleet_count = (
-        valid["Tipo Flota"]
-        .value_counts(dropna=False)
-        .rename_axis("Tipo Flota")
-        .reset_index(name="Servicios")
-    )
-    fig_fleet = go.Figure(
-        go.Pie(
-            labels=fleet_count["Tipo Flota"],
-            values=fleet_count["Servicios"],
-            hole=0.62,
-            textinfo="percent",
-            marker=dict(colors=[ROYAL_BLUE, SECONDARY_BLUE, "#64748B"]),
-            hovertemplate="%{label}<br>%{value:,} servicios<br>%{percent}<extra></extra>",
+    else:
+        m["P_ORD"] = m["AÑO"] * 10 + m["SEMESTRE_NUM"].astype(int)
+        m["P_LABEL"] = m.apply(
+            lambda r: f"S{int(r['SEMESTRE_NUM'])} {int(r['AÑO'])}",
+            axis=1,
         )
-    )
-    fig_fleet.update_layout(
-        height=330,
-        margin=dict(l=5, r=5, t=15, b=15),
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            y=-0.05,
-            x=0,
-            font=dict(color="#F8FAFC", size=11),
-        ),
-    )
-    st.plotly_chart(
-        fig_fleet,
-        use_container_width=True,
-        key="op_fleet_services",
+
+    period_order = (
+        m[["P_ORD", "P_LABEL"]]
+        .drop_duplicates()
+        .sort_values("P_ORD")["P_LABEL"]
+        .tolist()
     )
 
-with rr4:
-    st.markdown(
-        '<div class="section-title">TOP PLACAS POR SERVICIOS</div>',
-        unsafe_allow_html=True,
-    )
-    plate_ops = (
-        valid.groupby("PLACA", dropna=False)
+    m["_CUMPLIDO"] = m["ESTADO OP N"].eq("CUMPLIDO").astype(int)
+    m["_CUMPLIDO_OPER"] = m["ESTADO OP N"].eq("CUMPLIDO OPERATIVO").astype(int)
+    m["_PENDIENTE"] = m["ESTADO OP N"].isin(
+        ["EN PROGRAMACION", "EN TRANSITO"]
+    ).astype(int)
+
+    matrix_base = (
+        m.groupby(["CLIENTE", "P_LABEL"], dropna=False)
         .agg(
             Servicios=("CLIENTE", "size"),
-            Clientes=("CLIENTE", "nunique"),
+            Cumplido=("_CUMPLIDO", "sum"),
+            Cumplido_Operativo=("_CUMPLIDO_OPER", "sum"),
+            Pendientes=("_PENDIENTE", "sum"),
         )
         .reset_index()
-        .sort_values(["Servicios", "Clientes"], ascending=[False, False])
-        .head(15)
     )
-    plate_ops.columns = ["Placa", "Servicios", "Clientes atendidos"]
-    st.dataframe(
-        plate_ops.style.format(
+
+    matrix_base["Cierre Final %"] = np.where(
+        matrix_base["Servicios"].ne(0),
+        matrix_base["Cumplido"] / matrix_base["Servicios"],
+        np.nan,
+    )
+    matrix_base["Cumplido Operativo %"] = np.where(
+        matrix_base["Servicios"].ne(0),
+        matrix_base["Cumplido_Operativo"] / matrix_base["Servicios"],
+        np.nan,
+    )
+    matrix_base["Pendientes %"] = np.where(
+        matrix_base["Servicios"].ne(0),
+        matrix_base["Pendientes"] / matrix_base["Servicios"],
+        np.nan,
+    )
+
+    pivot = (
+        matrix_base.pivot(
+            index="CLIENTE",
+            columns="P_LABEL",
+            values=matrix_metric,
+        )
+        .reindex(columns=period_order)
+    )
+
+    client_order = (
+        matrix_base.groupby("CLIENTE")["Servicios"]
+        .sum()
+        .sort_values(ascending=False)
+        .index
+    )
+    pivot = pivot.reindex(client_order)
+
+    # CLIENTE queda siempre visible como primera columna.
+    pivot_display = (
+        pivot.reset_index()
+        .rename(columns={"CLIENTE": "Cliente"})
+    )
+
+    if matrix_metric == "Servicios":
+        matrix_styled = pivot_display.style.format(
             {
-                "Servicios": "{:,.0f}",
-                "Clientes atendidos": "{:,.0f}",
+                col: (lambda x: "" if pd.isna(x) else f"{x:,.0f}")
+                for col in pivot_display.columns
+                if col != "Cliente"
+            }
+        )
+    else:
+        matrix_styled = pivot_display.style.format(
+            {
+                col: "{:.2%}"
+                for col in pivot_display.columns
+                if col != "Cliente"
+            }
+        )
+
+    st.dataframe(
+        matrix_styled,
+        use_container_width=True,
+        hide_index=True,
+        height=500,
+    )
+
+with st.expander("🚐 Servicios por placa y cliente", expanded=False):
+    servicios_pc = (
+        valid.assign(
+            PLACA_N=valid["PLACA"].astype("string").str.strip().str.upper(),
+            CLIENTE_N=valid["CLIENTE"].astype("string").str.strip().str.upper(),
+        )
+        .groupby(["PLACA_N", "CLIENTE_N"], dropna=False)
+        .size()
+        .rename("SERVICIOS")
+        .reset_index()
+        .rename(
+            columns={
+                "PLACA_N": "PLACA",
+                "CLIENTE_N": "CLIENTE",
+            }
+        )
+    )
+
+    totales_placa = (
+        servicios_pc.groupby("PLACA", as_index=False)["SERVICIOS"]
+        .sum()
+        .rename(columns={"SERVICIOS": "TOTAL_SERVICIOS_PLACA"})
+    )
+
+    servicios_pc = servicios_pc.merge(
+        totales_placa,
+        on="PLACA",
+        how="left",
+    )
+
+    servicios_pc["PARTICIPACIÓN EN %"] = np.where(
+        servicios_pc["TOTAL_SERVICIOS_PLACA"].ne(0),
+        servicios_pc["SERVICIOS"] / servicios_pc["TOTAL_SERVICIOS_PLACA"],
+        np.nan,
+    )
+
+    tabla_pc = (
+        servicios_pc[
+            ["PLACA", "CLIENTE", "SERVICIOS", "PARTICIPACIÓN EN %"]
+        ]
+        .sort_values(
+            ["PLACA", "SERVICIOS", "CLIENTE"],
+            ascending=[True, False, True],
+        )
+        .reset_index(drop=True)
+    )
+
+    st.dataframe(
+        tabla_pc.style.format(
+            {
+                "SERVICIOS": "{:,.0f}",
+                "PARTICIPACIÓN EN %": "{:.2%}",
             }
         ),
         use_container_width=True,
         hide_index=True,
-        height=350,
+        height=520,
     )
 
-with rr5:
-    st.markdown(
-        '<div class="section-title">TOP CONDUCTORES POR SERVICIOS</div>',
-        unsafe_allow_html=True,
-    )
-    driver_ops = (
-        valid.groupby("CONDUCTOR_NOMBRE", dropna=False)
-        .agg(
-            Servicios=("CLIENTE", "size"),
-            Clientes=("CLIENTE", "nunique"),
-        )
-        .reset_index()
-        .sort_values(["Servicios", "Clientes"], ascending=[False, False])
-        .head(15)
-    )
-    driver_ops.columns = ["Conductor", "Servicios", "Clientes atendidos"]
-    st.dataframe(
-        driver_ops.style.format(
-            {
-                "Servicios": "{:,.0f}",
-                "Clientes atendidos": "{:,.0f}",
-            }
-        ),
-        use_container_width=True,
-        hide_index=True,
-        height=350,
-    )
-
-
-# =========================================================
-# 5. SEGUIMIENTO DETALLADO DE ESTATUS
-# =========================================================
-st.markdown("## 5. Seguimiento detallado de estatus")
-st.caption(
-    "Permite identificar qué coordinador o cliente concentra cierres, legalizaciones "
-    "y pendientes operativos."
-)
-
-status_mode = st.radio(
-    "Ver tabla de estatus por",
-    ["QUIÉN CREÓ", "CLIENTE"],
-    horizontal=True,
-    key="status_tracking_mode",
-)
-
-if status_mode == "QUIÉN CREÓ":
-    status_tbl = build_status_table(valid, "Quien Creó", "Quién creó")
-else:
-    status_tbl = build_status_table(valid, "CLIENTE", "Cliente")
-
-st.markdown(
-    f'<div class="section-title">ESTATUS OPERATIVO POR {status_mode}</div>',
-    unsafe_allow_html=True,
-)
-
-# La dimensión queda como primera columna visible.
-status_format = {
-    "CUMPLIDO": "{:,.0f}",
-    "CUMPLIDO OPERATIVO": "{:,.0f}",
-    "EN PROGRAMACION": "{:,.0f}",
-    "EN TRANSITO": "{:,.0f}",
-    "OTROS": "{:,.0f}",
-    "Total general": "{:,.0f}",
-    "Pendientes operativos": "{:,.0f}",
-    "% Cumplido": "{:.2%}",
-    "% Cumplido Operativo": "{:.2%}",
-    "Pendientes %": "{:.2%}",
-}
-
-st.dataframe(
-    status_tbl.style.format(status_format),
-    use_container_width=True,
-    hide_index=True,
-    height=540,
-)
-
-
-# =========================================================
-# 6. MATRIZ CLIENTE × PERIODO · SOLO OPERATIVA
-# =========================================================
-st.markdown("## 6. Matriz Cliente × Periodo")
-st.caption(
-    "La matriz ahora contiene únicamente indicadores operativos. "
-    "Las métricas económicas se consultan en Posición Financiera y Proyecciones."
-)
-
-matrix_metric = st.radio(
-    "Indicador de la matriz",
-    [
-        "Servicios",
-        "Cierre Final %",
-        "Cumplido Operativo %",
-        "Pendientes %",
-    ],
-    horizontal=True,
-    key="op_matrix_metric",
-)
-
-m = valid.copy()
-
-if grain == "Mensual":
-    m["P_ORD"] = m["AÑO"] * 100 + m["MES_NUM"]
-    m["P_LABEL"] = m.apply(
-        lambda r: f"{MONTHS_ES.get(r['MES_NUM'], '')} {int(r['AÑO'])}", axis=1
-    )
-elif grain == "Bimestral":
-    m["P_ORD"] = m["AÑO"] * 10 + m["BIMESTRE_NUM"].astype(int)
-    m["P_LABEL"] = m.apply(
-        lambda r: f"B{int(r['BIMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
-    )
-elif grain == "Trimestral":
-    m["P_ORD"] = m["AÑO"] * 10 + m["TRIMESTRE_NUM"].astype(int)
-    m["P_LABEL"] = m.apply(
-        lambda r: f"T{int(r['TRIMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
-    )
-else:
-    m["P_ORD"] = m["AÑO"] * 10 + m["SEMESTRE_NUM"].astype(int)
-    m["P_LABEL"] = m.apply(
-        lambda r: f"S{int(r['SEMESTRE_NUM'])} {int(r['AÑO'])}", axis=1
-    )
-
-period_order = (
-    m[["P_ORD", "P_LABEL"]]
-    .drop_duplicates()
-    .sort_values("P_ORD")["P_LABEL"]
-    .tolist()
-)
-
-m["_CUMPLIDO"] = m["ESTADO OP N"].eq("CUMPLIDO").astype(int)
-m["_CUMPLIDO_OPER"] = m["ESTADO OP N"].eq("CUMPLIDO OPERATIVO").astype(int)
-m["_PENDIENTE"] = m["ESTADO OP N"].isin(
-    ["EN PROGRAMACION", "EN TRANSITO"]
-).astype(int)
-
-matrix_base = (
-    m.groupby(["CLIENTE", "P_LABEL"], dropna=False)
-    .agg(
-        Servicios=("CLIENTE", "size"),
-        Cumplido=("_CUMPLIDO", "sum"),
-        Cumplido_Operativo=("_CUMPLIDO_OPER", "sum"),
-        Pendientes=("_PENDIENTE", "sum"),
-    )
-    .reset_index()
-)
-
-matrix_base["Cierre Final %"] = np.where(
-    matrix_base["Servicios"].ne(0),
-    matrix_base["Cumplido"] / matrix_base["Servicios"],
-    np.nan,
-)
-matrix_base["Cumplido Operativo %"] = np.where(
-    matrix_base["Servicios"].ne(0),
-    matrix_base["Cumplido_Operativo"] / matrix_base["Servicios"],
-    np.nan,
-)
-matrix_base["Pendientes %"] = np.where(
-    matrix_base["Servicios"].ne(0),
-    matrix_base["Pendientes"] / matrix_base["Servicios"],
-    np.nan,
-)
-
-pivot = (
-    matrix_base.pivot(
-        index="CLIENTE",
-        columns="P_LABEL",
-        values=matrix_metric,
-    )
-    .reindex(columns=period_order)
-)
-
-# Orden ejecutivo:
-# Servicios -> mayor volumen.
-# Porcentajes -> ordenar por volumen total para mantener relevancia operativa.
-client_order = (
-    matrix_base.groupby("CLIENTE")["Servicios"]
-    .sum()
-    .sort_values(ascending=False)
-    .index
-)
-pivot = pivot.reindex(client_order)
-
-# Convertir CLIENTE en columna visible, evitando que el sistema de tablas oculte el índice.
-pivot_display = pivot.reset_index().rename(columns={"CLIENTE": "Cliente"})
-
-if matrix_metric == "Servicios":
-    matrix_styled = pivot_display.style.format(
-        {
-            col: (lambda x: "" if pd.isna(x) else f"{x:,.0f}")
-            for col in pivot_display.columns
-            if col != "Cliente"
-        }
-    )
-else:
-    matrix_styled = pivot_display.style.format(
-        {
-            col: "{:.2%}"
-            for col in pivot_display.columns
-            if col != "Cliente"
-        }
-    )
-
-st.dataframe(
-    matrix_styled,
-    use_container_width=True,
-    hide_index=True,
-    height=500,
-)
-
-
-# =========================================================
-# 7. SERVICIOS POR PLACA Y CLIENTE · SOLO OPERATIVO
-# =========================================================
-st.markdown("## 7. Servicios por placa y cliente")
-st.caption(
-    "Detalle de utilización por placa y cliente. "
-    "La participación se calcula sobre la cantidad de servicios de cada placa, no sobre valores monetarios."
-)
-
+# Garantizar tabla_pc para la descarga aunque el expander no se abra.
 servicios_pc = (
     valid.assign(
         PLACA_N=valid["PLACA"].astype("string").str.strip().str.upper(),
@@ -3215,25 +3915,17 @@ servicios_pc = (
     .reset_index()
     .rename(columns={"PLACA_N": "PLACA", "CLIENTE_N": "CLIENTE"})
 )
-
 totales_placa = (
     servicios_pc.groupby("PLACA", as_index=False)["SERVICIOS"]
     .sum()
     .rename(columns={"SERVICIOS": "TOTAL_SERVICIOS_PLACA"})
 )
-
-servicios_pc = servicios_pc.merge(
-    totales_placa,
-    on="PLACA",
-    how="left",
-)
-
+servicios_pc = servicios_pc.merge(totales_placa, on="PLACA", how="left")
 servicios_pc["PARTICIPACIÓN EN %"] = np.where(
     servicios_pc["TOTAL_SERVICIOS_PLACA"].ne(0),
     servicios_pc["SERVICIOS"] / servicios_pc["TOTAL_SERVICIOS_PLACA"],
     np.nan,
 )
-
 tabla_pc = (
     servicios_pc[
         ["PLACA", "CLIENTE", "SERVICIOS", "PARTICIPACIÓN EN %"]
@@ -3245,21 +3937,12 @@ tabla_pc = (
     .reset_index(drop=True)
 )
 
-st.dataframe(
-    tabla_pc.style.format(
-        {
-            "SERVICIOS": "{:,.0f}",
-            "PARTICIPACIÓN EN %": "{:.2%}",
-        }
-    ),
-    use_container_width=True,
-    hide_index=True,
-    height=520,
-)
 
-# ---------------------------------------------------------
-# Descarga operativa
-# ---------------------------------------------------------
+# =========================================================
+# 8. DESCARGA OPERATIVA
+# =========================================================
+st.markdown("## 8. Descarga operativa")
+
 operational_excel = BytesIO()
 
 with pd.ExcelWriter(operational_excel, engine="openpyxl") as writer:
@@ -3268,10 +3951,15 @@ with pd.ExcelWriter(operational_excel, engine="openpyxl") as writer:
         index=False,
         sheet_name="Estatus_Operativo",
     )
-    client_show.to_excel(
+    client_perf.to_excel(
         writer,
         index=False,
-        sheet_name="Clientes_Servicios",
+        sheet_name="Clientes_Operativo",
+    )
+    coord_perf.to_excel(
+        writer,
+        index=False,
+        sheet_name="Quien_Creo",
     )
     plate_ops.to_excel(
         writer,
