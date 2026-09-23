@@ -1,14 +1,15 @@
 
-
 from __future__ import annotations
 
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import base64
 import re
 import calendar
+import unicodedata
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -784,15 +785,252 @@ def norm_state(s: pd.Series) -> pd.Series:
 
 
 @st.cache_data(show_spinner=False)
+def _read_html_table(raw_html: bytes) -> pd.DataFrame:
+    """Lee tablas HTML/Excel Web sin asumir que la primera fila sea el encabezado."""
+    try:
+        tables = pd.read_html(BytesIO(raw_html), header=None)
+    except Exception as exc:
+        raise ValueError(
+            "No fue posible encontrar una tabla de datos dentro del archivo HTML/XLS."
+        ) from exc
+
+    if not tables:
+        raise ValueError("El archivo HTML/XLS no contiene tablas de datos.")
+
+    candidates = []
+    for t in tables:
+        rows, cols = t.shape
+        candidates.append((rows * max(cols, 1), rows, cols, t))
+    candidates.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+    return candidates[0][3].copy()
+
+
+def _compact_header(value) -> str:
+    """Normaliza un encabezado para detectar variaciones y caracteres dañados."""
+    raw = "" if pd.isna(value) else str(value)
+    raw = raw.replace("\\xa0", " ")
+    raw = unicodedata.normalize("NFKD", raw)
+    raw = "".join(ch for ch in raw if not unicodedata.combining(ch))
+    return re.sub(r"[^A-Z0-9]", "", raw.upper())
+
+
+def _make_unique_headers(values) -> list[str]:
+    """Replica el criterio CONDUCTOR / CONDUCTOR.1 para encabezados duplicados."""
+    result = []
+    seen = {}
+    for i, value in enumerate(values, start=1):
+        base = re.sub(r"\\s+", " ", str(value).replace("\\xa0", " ")).strip()
+        if not base or base.lower() == "nan":
+            base = f"COL_{i}"
+        count = seen.get(base, 0)
+        name = base if count == 0 else f"{base}.{count}"
+        seen[base] = count + 1
+        result.append(name)
+    return result
+
+
+def _promote_detected_header(frame: pd.DataFrame) -> pd.DataFrame:
+    """
+    Detecta automáticamente la fila real de encabezados.
+
+    La nueva exportación de la empresa trae:
+      fila 1 = Empresa / fecha de generación / usuario
+      fila 2 = encabezados reales
+    La versión anterior comenzaba directamente con los encabezados.
+    """
+    if frame is None or frame.empty:
+        raise ValueError("La hoja seleccionada está vacía.")
+
+    x = frame.copy()
+    x = x.dropna(axis=1, how="all")
+    x = x.dropna(axis=0, how="all").reset_index(drop=True)
+
+    anchors = {
+        "CLIENTE", "CARGA", "VCLIENTE", "PLACA", "TRAYPROP",
+        "LINEANEG", "TNEGOCIO", "TVEHICULO"
+    }
+
+    best_row = None
+    best_score = -1
+    scan_rows = min(len(x), 15)
+    for r in range(scan_rows):
+        tokens = {_compact_header(v) for v in x.iloc[r].tolist()}
+        score = len(tokens.intersection(anchors))
+        if score > best_score:
+            best_score = score
+            best_row = r
+
+    if best_row is None or best_score < 4:
+        preview = " | ".join(str(v) for v in x.iloc[0].tolist()[:12])
+        raise ValueError(
+            "No se pudo identificar la fila de encabezados de la base. "
+            f"Primera fila detectada: {preview}"
+        )
+
+    headers = _make_unique_headers(x.iloc[best_row].tolist())
+    out = x.iloc[best_row + 1:].copy()
+    out.columns = headers
+    out = out.dropna(axis=0, how="all").reset_index(drop=True)
+    return out
+
+
+def _read_source_dataframe(raw: bytes) -> pd.DataFrame:
+    """
+    Soporta XLSX, XLS binario y Excel Web/HTML.
+    Siempre lee inicialmente sin encabezado para poder detectar metadatos previos.
+    """
+    if not raw:
+        raise ValueError("El archivo está vacío.")
+
+    # XLSX real o ZIP de Excel Web.
+    if raw[:2] == b"PK":
+        try:
+            with zipfile.ZipFile(BytesIO(raw)) as zf:
+                names = zf.namelist()
+
+                if "[Content_Types].xml" in names:
+                    xls = pd.ExcelFile(BytesIO(raw), engine="openpyxl")
+                    sheet = "TODOS" if "TODOS" in xls.sheet_names else xls.sheet_names[0]
+                    raw_df = pd.read_excel(
+                        BytesIO(raw), sheet_name=sheet, engine="openpyxl", header=None
+                    )
+                    return _promote_detected_header(raw_df)
+
+                html_candidates = [
+                    n for n in names
+                    if n.lower().endswith((".htm", ".html"))
+                    and ("sheet" in Path(n).name.lower() or "_archivos" in n.lower())
+                ]
+                if not html_candidates:
+                    html_candidates = [
+                        n for n in names if n.lower().endswith((".htm", ".html"))
+                    ]
+                if not html_candidates:
+                    raise ValueError("El ZIP no contiene una hoja de datos de Excel.")
+
+                best_df = None
+                best_score = -1
+                for name in html_candidates:
+                    try:
+                        candidate = _promote_detected_header(_read_html_table(zf.read(name)))
+                        score = candidate.shape[0] * max(candidate.shape[1], 1)
+                        if score > best_score:
+                            best_score = score
+                            best_df = candidate
+                    except Exception:
+                        continue
+                if best_df is None:
+                    raise ValueError("No fue posible localizar la tabla de datos dentro del ZIP.")
+                return best_df
+        except zipfile.BadZipFile:
+            pass
+
+    # XLS binario OLE.
+    if raw[:8] == b"\\xd0\\xcf\\x11\\xe0\\xa1\\xb1\\x1a\\xe1":
+        try:
+            xls = pd.ExcelFile(BytesIO(raw), engine="xlrd")
+            sheet = "TODOS" if "TODOS" in xls.sheet_names else xls.sheet_names[0]
+            raw_df = pd.read_excel(BytesIO(raw), sheet_name=sheet, engine="xlrd", header=None)
+            return _promote_detected_header(raw_df)
+        except Exception as exc:
+            raise ValueError(
+                "No fue posible leer el .xls binario. Verifica que xlrd esté instalado."
+            ) from exc
+
+    # XLS que realmente es HTML.
+    probe = raw[:4096].decode("utf-8", errors="ignore").lower()
+    if "<html" in probe or "<!doctype html" in probe:
+        full_text = raw.decode("utf-8", errors="ignore").lower()
+        has_external_sheet = ("sheet001.htm" in full_text or "_archivos/" in full_text)
+        if has_external_sheet and full_text.count("<table") <= 2:
+            raise ValueError(
+                "La base es un Excel guardado como página web y el archivo principal "
+                "apunta a una carpeta *_archivos. Carga un ZIP con el .xls y esa carpeta, "
+                "o guarda/exporta la base como .xlsx."
+            )
+        return _promote_detected_header(_read_html_table(raw))
+
+    raise ValueError(
+        "Formato no reconocido. Usa .xlsx, .xls real o ZIP de una exportación web de Excel."
+    )
+
+
+def _standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Traduce tanto la estructura histórica como la nueva estructura ORDPLA
+    al modelo canónico usado por el dashboard.
+    """
+    x = df.copy()
+    x.columns = [
+        re.sub(r"\\s+", " ", str(c).replace("\\xa0", " ")).strip()
+        for c in x.columns
+    ]
+
+    rename_map = {}
+    for col in x.columns:
+        key = _compact_header(col)
+
+        # Campos cuyo nombre cambió en la nueva base.
+        direct_aliases = {
+            "TRAYPROP": "TRAY. PROP",
+            "LINEANEG": "LINEA NEG",
+            "TNEGOCIO": "T.NEGOCIO",
+            "VCLIENTE": "V.CLIENTE",
+            "VCONDUCT": "V.CONDUCT",
+            "VCONDUCTOR": "V.CONDUCT",
+            "TVEHICULO": "T. VEHICULO",
+            "ESTADOOP": "ESTADO OP",
+            "ESTADOOPER": "ESTADO OP",
+            "ESTADOFA": "ESTADO FA",
+            "ESTADOFAC": "ESTADO FA",
+            "FACPROVE": "FAC PROVE",
+            "FACPROVEEDOR": "FAC PROVE",
+            "FECHACUM": "FECHA CUM",
+            "FECHACUMP": "FECHA CUM",
+            "FPRECUMP": "F PRECUMP",
+            "FPRECUMPLIDO": "F PRECUMP",
+            "FECHAR": "FECHA R",
+            "CONDUCTO1": "CONDUCTO.1",
+            "CONDUCTOR1": "CONDUCTO.1",
+        }
+
+        if key in direct_aliases:
+            target = direct_aliases[key]
+            if target not in x.columns or col == target:
+                rename_map[col] = target
+            continue
+
+        # El nuevo reporte trae caracteres dañados después de "Quien Cre...".
+        if key.startswith("QUIENCRE"):
+            rename_map[col] = "Quien Creó"
+
+    if rename_map:
+        x = x.rename(columns=rename_map)
+
+    # Si coexistieran alias viejo/nuevo, conserva una sola columna canónica.
+    x = x.loc[:, ~x.columns.duplicated(keep="last")]
+    return x
+
+
+@st.cache_data(show_spinner=False)
 def load_excel(raw: bytes) -> pd.DataFrame:
-    df = pd.read_excel(BytesIO(raw), sheet_name="TODOS", engine="openpyxl")
-    df.columns = [str(c).strip() for c in df.columns]
+    """Carga y normaliza la base operativa histórica o la nueva ORDPLA."""
+    df = _read_source_dataframe(raw)
+    df = _standardize_column_names(df)
+
+    source_columns = list(df.columns)
 
     missing = [c for c in REQUIRED if c not in df.columns]
     if missing:
-        raise ValueError("Faltan columnas requeridas: " + ", ".join(missing))
+        available = ", ".join(df.columns.astype(str).tolist()[:50])
+        raise ValueError(
+            "La base fue leída, pero faltan campos necesarios para el dashboard: "
+            + ", ".join(missing)
+            + ". Columnas detectadas: "
+            + available
+        )
 
-    # Fecha maestra: CARGA.
+    # Fecha maestra operacional.
     df["CARGA"] = pd.to_datetime(df["CARGA"], errors="coerce")
     df["FECHA_CARGA"] = df["CARGA"].dt.normalize()
 
@@ -810,41 +1048,29 @@ def load_excel(raw: bytes) -> pd.DataFrame:
         default="SIN CLASIFICAR",
     )
 
-    # Tipología: campo T. VEHICULO.
     df["TIPOLOGIA"] = (
-        df["T. VEHICULO"]
-        .astype("string")
-        .fillna("SIN TIPOLOGÍA")
-        .str.strip()
+        df["T. VEHICULO"].astype("string").fillna("SIN TIPOLOGÍA").str.strip()
     )
-
-    # Extrae capacidad numérica cuando el nombre contiene "XX PASAJEROS".
-    cap = (
-        df["TIPOLOGIA"]
-        .str.extract(r"(\d+)\s*PASAJER", flags=re.IGNORECASE, expand=False)
+    cap = df["TIPOLOGIA"].str.extract(
+        r"(\\d+)\\s*PASAJER", flags=re.IGNORECASE, expand=False
     )
     df["CAPACIDAD_PAX"] = pd.to_numeric(cap, errors="coerce")
 
-    # Conductor oficial: columna W en el archivo = CONDUCTO.1
+    # En la nueva ORDPLA hay dos columnas CONDUCTOR:
+    # la primera contiene identificación y la segunda (CONDUCTOR.1) el nombre.
     df["CONDUCTOR_NOMBRE"] = (
         df["CONDUCTO.1"].astype("string").fillna("SIN CONDUCTOR").str.strip()
     )
 
     df["PLACA"] = (
-        df["PLACA"]
-        .astype("string")
-        .fillna("SIN PLACA")
-        .str.strip()
-        .str.upper()
+        df["PLACA"].astype("string").fillna("SIN PLACA").str.strip().str.upper()
     )
     df["CLIENTE"] = (
-        df["CLIENTE"]
-        .astype("string")
-        .fillna("SIN CLIENTE")
-        .str.strip()
-        .str.upper()
+        df["CLIENTE"].astype("string").fillna("SIN CLIENTE").str.strip().str.upper()
     )
-    df["Quien Creó"] = df["Quien Creó"].astype("string").fillna("SIN COORDINADOR").str.strip()
+    df["Quien Creó"] = (
+        df["Quien Creó"].astype("string").fillna("SIN COORDINADOR").str.strip()
+    )
 
     df["AÑO"] = df["FECHA_CARGA"].dt.year
     df["MES_NUM"] = df["FECHA_CARGA"].dt.month
@@ -853,7 +1079,28 @@ def load_excel(raw: bytes) -> pd.DataFrame:
     df["TRIMESTRE_NUM"] = ((df["MES_NUM"] - 1) // 3 + 1).astype("Int64")
     df["SEMESTRE_NUM"] = np.where(df["MES_NUM"] <= 6, 1, 2)
 
+    df.attrs["source_columns"] = source_columns
     return df
+
+
+def dataframe_to_master_xlsx(df: pd.DataFrame) -> bytes:
+    """Publica siempre una base maestra XLSX canónica con hoja TODOS."""
+    source_cols = [c for c in df.attrs.get("source_columns", []) if c in df.columns]
+    if not source_cols:
+        source_cols = [
+            c for c in df.columns
+            if c not in {
+                "FECHA_CARGA", "ESTADO OP N", "Tipo Flota", "TIPOLOGIA",
+                "CAPACIDAD_PAX", "CONDUCTOR_NOMBRE", "AÑO", "MES_NUM",
+                "MES", "BIMESTRE_NUM", "TRIMESTRE_NUM", "SEMESTRE_NUM"
+            }
+        ]
+
+    out = BytesIO()
+    with pd.ExcelWriter(out, engine="openpyxl") as writer:
+        df[source_cols].to_excel(writer, sheet_name="TODOS", index=False)
+    out.seek(0)
+    return out.getvalue()
 
 
 def valid_services(df: pd.DataFrame) -> pd.DataFrame:
@@ -1329,10 +1576,10 @@ if master_info is None:
     )
     emergency_upload = st.file_uploader(
         "Cargar base temporal para iniciar",
-        type=["xlsx"],
+        type=["xlsx", "xls", "zip"],
         accept_multiple_files=False,
         key="emergency_master_upload",
-        help="La hoja debe llamarse TODOS y conservar las columnas requeridas.",
+        help="Acepta .xlsx, .xls real o .zip. Compatible con la nueva exportación ORDPLA: metadatos en fila 1 y encabezados en fila 2.",
     )
 
     if emergency_upload is None:
@@ -1406,14 +1653,15 @@ with st.sidebar:
 
     with st.expander("🔄 Actualizar base vigente", expanded=False):
         st.caption(
-            "Carga una nueva base únicamente cuando quieras reemplazar la información visible para todos."
+            "Carga una nueva base únicamente cuando quieras reemplazar la información visible para todos. "
+            "Si el sistema entrega un .xls tipo página web, súbelo como ZIP junto con su carpeta *_archivos."
         )
 
         uploaded_file = st.file_uploader(
-            "Nueva base Excel",
-            type=["xlsx"],
+            "Nueva base operativa",
+            type=["xlsx", "xls", "zip"],
             accept_multiple_files=False,
-            help="El nombre puede variar. La hoja debe llamarse TODOS.",
+            help="Acepta .xlsx, .xls real o ZIP del Excel web. Detecta automáticamente la fila de encabezados de ORDPLA y el nombre de la hoja.",
             key="shared_master_uploader",
         )
 
@@ -1475,12 +1723,13 @@ with st.sidebar:
 
                 if publish_clicked:
                     with st.spinner("Publicando y actualizando el dashboard..."):
+                        canonical_raw = dataframe_to_master_xlsx(candidate_df)
                         ok, message = publish_master_to_github(
-                            candidate_raw, uploaded_file.name
+                            canonical_raw, uploaded_file.name
                         )
                     if ok:
                         load_excel.clear()
-                        st.session_state["master_override_raw"] = candidate_raw
+                        st.session_state["master_override_raw"] = canonical_raw
                         st.session_state["master_override_updated_at"] = datetime.now(BOGOTA_TZ)
                         st.success("✅ Nueva base publicada. El dashboard se actualizará ahora.")
                         st.rerun()
@@ -1511,9 +1760,24 @@ with st.sidebar:
 
     min_date = df_all["FECHA_CARGA"].min().date()
     max_date = df_all["FECHA_CARGA"].max().date()
+
+    # La nueva ORDPLA puede traer servicios programados con CARGA futura.
+    # Para no mezclar programación futura con desempeño histórico, el corte
+    # por defecto termina hoy; el usuario puede ampliar manualmente hasta max_date.
+    today_local = pd.Timestamp.now(tz="America/Bogota").date()
+    default_end_date = min(max_date, today_local)
+    future_rows = int((df_all["FECHA_CARGA"].dt.date > today_local).sum())
+
+    if future_rows > 0:
+        st.info(
+            f"📅 La base contiene {future_rows:,.0f} servicios con CARGA futura. "
+            "Se excluyen del corte por defecto para no afectar cierre y pendientes; "
+            "puedes incluirlos ampliando el rango de fechas.".replace(",", ".")
+        )
+
     date_range = st.date_input(
         "Rango de fechas (CARGA)",
-        value=(min_date, max_date),
+        value=(min_date, default_end_date),
         min_value=min_date,
         max_value=max_date,
     )
@@ -3179,3 +3443,4 @@ with pd.ExcelWriter(operational_excel,engine="openpyxl") as writer:
             ws.column_dimensions[col_cells[0].column_letter].width=min(max(ml+2,12),44)
 operational_excel.seek(0)
 st.download_button("⬇️ Descargar Centro de Control Operativo",data=operational_excel,file_name="Centro_Control_Operativo_VSE.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True)
+
